@@ -1,0 +1,5 @@
+development:
+    dialect: postgres
+    datasource: dbname=main sslmode=disable
+    dir: migrations
+    table: migrations

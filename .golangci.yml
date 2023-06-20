@@ -1,0 +1,15 @@
+linters:
+  enable:
+    - cyclop
+    - errchkjson 
+    - goconst
+    - gocritic
+    - gosec
+    - prealloc 
+    - rowserrcheck
+    - exportloopref
+    - revive
+    - predeclared
+    - godot
+    - wrapcheck
+    - ifshort
