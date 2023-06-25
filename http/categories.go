@@ -2,7 +2,6 @@ package http
 
 import (
 	"database/sql"
-	"fmt"
 	"net/http"
 	"strconv"
 
@@ -62,13 +61,13 @@ func (s *Server) categoriesGetHandler(w http.ResponseWriter, r *http.Request) {
 // @Failure      500  {object}  http.HTTPError
 // @Router       /categories/   [get]
 func (s *Server) categoriesListHandler(w http.ResponseWriter, r *http.Request) {
-	limit, err := strconv.Atoi(r.URL.Query().Get("limit"))
+	limit, err := ParseIntQuery(r, "limit")
 	if err != nil {
 		Error(w, r, ErrInvalidQuery, http.StatusBadRequest)
 		return
 	}
 
-	offset, err := strconv.Atoi(r.URL.Query().Get("offset"))
+	offset, err := ParseIntQuery(r, "offset")
 	if err != nil {
 		Error(w, r, ErrInvalidQuery, http.StatusBadRequest)
 		return
@@ -83,7 +82,13 @@ func (s *Server) categoriesListHandler(w http.ResponseWriter, r *http.Request) {
 
 	categories, err := s.CategoriesStore.List(r.Context(), filter)
 	if err != nil {
-		Error(w, r, err, http.StatusInternalServerError)
+		switch err {
+		case sql.ErrNoRows:
+			Error(w, r, ErrNotFound, http.StatusNotFound)
+		default:
+			Error(w, r, err, http.StatusInternalServerError)
+		}
+
 		return
 	}
 
@@ -129,6 +134,8 @@ func (s *Server) categoriesCreateHandler(w http.ResponseWriter, r *http.Request)
 		default:
 			Error(w, r, err, http.StatusInternalServerError)
 		}
+
+		return
 	}
 
 	err = ToJSON(w, ecommerce.WrapCategories{Category: category})
@@ -150,7 +157,7 @@ func (s *Server) categoriesCreateHandler(w http.ResponseWriter, r *http.Request)
 func (s *Server) categoriesUpdateHandler(w http.ResponseWriter, r *http.Request) {
 	ID, err := strconv.Atoi(chi.URLParam(r, "id"))
 	if err != nil {
-		Error(w, r, fmt.Errorf("invalid id requested"), http.StatusBadRequest)
+		Error(w, r, ErrInvalidQuery, http.StatusBadRequest)
 		return
 	}
 
@@ -209,7 +216,8 @@ func (s *Server) categoriesUpdateHandler(w http.ResponseWriter, r *http.Request)
 func (s *Server) categoriesDeleteHandler(w http.ResponseWriter, r *http.Request) {
 	ID, err := strconv.Atoi(chi.URLParam(r, "id"))
 	if err != nil {
-		Error(w, r, fmt.Errorf("invalid id requested"), http.StatusBadRequest)
+		Error(w, r, ErrInvalidQuery, http.StatusBadRequest)
+		return
 	}
 
 	err = s.CategoriesStore.Delete(r.Context(), ID)
@@ -217,6 +225,8 @@ func (s *Server) categoriesDeleteHandler(w http.ResponseWriter, r *http.Request)
 		switch err {
 		case sql.ErrNoRows:
 			Error(w, r, ErrNotFound, http.StatusNotFound)
+		case postgres.ErrForeinKeyViolation:
+			Error(w, r, postgres.ErrUnableDeleteEntry, http.StatusBadRequest)
 		default:
 			Error(w, r, err, http.StatusInternalServerError)
 		}

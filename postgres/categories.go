@@ -44,8 +44,10 @@ func (c *CategoriesStore) Create(ctx context.Context, category *ecommerce.Catego
 	)
 	if err != nil {
 		var pgErr *pgconn.PgError
-		if errors.As(err, &pgErr) && pgErr.Code == pgerrcode.UniqueViolation {
-			return ErrDuplicatedEntries
+		if errors.As(err, &pgErr) {
+			if pgErr.Code == pgerrcode.UniqueViolation {
+				return ErrDuplicatedEntries
+			}
 		}
 
 		return fmt.Errorf("failed to insert into categories: %v", err)
@@ -105,7 +107,7 @@ func (c *CategoriesStore) List(ctx context.Context, filter ecommerce.CategoriesF
 	}
 
 	query := `
-	SELECT * FROM products
+	SELECT * FROM categories
 	WHERE 1=1
 	` + FormatSort(filter.Sort) + `
 	` + FormatAndOp("name", filter.Name) + `
@@ -207,7 +209,14 @@ func (c *CategoriesStore) Delete(ctx context.Context, id int) error {
 
 	result, err := tx.ExecContext(ctx, query, id)
 	if err != nil {
-		return fmt.Errorf("failed to delete from categories: %v", err)
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) {
+			if pgErr.Code == pgerrcode.ForeignKeyViolation {
+				return ErrForeinKeyViolation
+			}
+		}
+
+		return fmt.Errorf("failed to delete from category: %v", err)
 	}
 
 	rows, err := result.RowsAffected()
@@ -216,7 +225,7 @@ func (c *CategoriesStore) Delete(ctx context.Context, id int) error {
 	}
 
 	if rows != 1 {
-		return fmt.Errorf("expected to affect 1 rows, affected: %d", rows)
+		return sql.ErrNoRows
 	}
 
 	err = EndTransaction(tx)

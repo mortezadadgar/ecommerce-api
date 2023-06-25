@@ -16,6 +16,7 @@ var ErrBeginTransaction = errors.New("failed to begin transaction")
 var ErrInvalidColumn = errors.New("requested data field could not be found")
 var ErrCommitTransaction = errors.New("failed to commit transaction")
 var ErrDuplicatedEntries = errors.New("duplicated entries are not allowed")
+var ErrUnableDeleteEntry = errors.New("unable to remove the entry")
 var ErrForeinKeyViolation = errors.New("product category must matches a category entry")
 
 // Connect initialize a new postgresql driver.
