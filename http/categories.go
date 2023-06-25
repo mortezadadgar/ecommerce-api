@@ -106,9 +106,10 @@ func (s *Server) categoriesListHandler(w http.ResponseWriter, r *http.Request) {
 func (s *Server) categoriesCreateHandler(w http.ResponseWriter, r *http.Request) {
 	input := ecommerce.CategoriesInput{}
 
-	err := FromJSON(r, &input)
+	err := FromJSON(w, r, &input)
 	if err != nil {
 		Error(w, r, err, http.StatusInternalServerError)
+		return
 	}
 
 	category := ecommerce.Categories{}
@@ -166,9 +167,10 @@ func (s *Server) categoriesUpdateHandler(w http.ResponseWriter, r *http.Request)
 	}
 
 	input := ecommerce.CategoriesInput{}
-	err = FromJSON(r, &input)
+	err = FromJSON(w, r, &input)
 	if err != nil {
 		Error(w, r, err, http.StatusInternalServerError)
+		return
 	}
 
 	input.SetValuesTo(category)

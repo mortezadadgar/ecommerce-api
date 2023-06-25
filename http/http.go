@@ -26,6 +26,7 @@ func Error(w http.ResponseWriter, r *http.Request, message error, code int) {
 		err.Message = "Internal server error"
 	}
 
+	// this does not seem right but simplifies error handling
 	if message == ErrMaxBytes {
 		err.Code = http.StatusRequestEntityTooLarge
 	}

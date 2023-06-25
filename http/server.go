@@ -39,6 +39,8 @@ var ErrNotFound = errors.New("the requested resource could not be found")
 var ErrMaxBytes = errors.New("exceeded maximum of 1M request body size")
 var ErrInvalidQuery = errors.New("invalid url query")
 
+const maxBytesRead = 1_048_576
+
 // New returns a new instance of Server.
 func New(db *sql.DB) *Server {
 	s := Server{
@@ -55,7 +57,6 @@ func New(db *sql.DB) *Server {
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
 	r.Use(middleware.StripSlashes)
-	r.Use(middlewareRequestSize(1_048_576))
 	r.Use(middleware.Timeout(5 * time.Second))
 	r.Use(middleware.SetHeader("Content-type", "application/json"))
 
@@ -141,7 +142,9 @@ func (s *Server) methodNotAllowdHandler(w http.ResponseWriter, r *http.Request) 
 // FromJSON decodes the giving struct.
 //
 // caller must pass v as pointer.
-func FromJSON(r *http.Request, v any) error {
+func FromJSON(w http.ResponseWriter, r *http.Request, v any) error {
+	r.Body = http.MaxBytesReader(w, r.Body, maxBytesRead)
+
 	err := json.NewDecoder(r.Body).Decode(&v)
 	if err != nil {
 		var MaxBytesError *http.MaxBytesError
@@ -168,15 +171,4 @@ func ParseIntQuery(r *http.Request, v string) (int, error) {
 	}
 
 	return strconv.Atoi(r.URL.Query().Get(v))
-}
-
-// use chi's middleware when released.
-func middlewareRequestSize(bytes int64) func(http.Handler) http.Handler {
-	return func(h http.Handler) http.Handler {
-		fn := func(w http.ResponseWriter, r *http.Request) {
-			r.Body = http.MaxBytesReader(w, r.Body, bytes)
-			h.ServeHTTP(w, r)
-		}
-		return http.HandlerFunc(fn)
-	}
 }

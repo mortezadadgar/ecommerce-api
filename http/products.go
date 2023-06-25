@@ -118,9 +118,10 @@ func (s *Server) productsListHandler(w http.ResponseWriter, r *http.Request) {
 // @Router       /products/   [post]
 func (s *Server) productCreateHandler(w http.ResponseWriter, r *http.Request) {
 	input := ecommerce.ProductsInput{}
-	err := FromJSON(r, &input)
+	err := FromJSON(w, r, &input)
 	if err != nil {
 		Error(w, r, err, http.StatusInternalServerError)
+		return
 	}
 
 	product := ecommerce.Products{}
@@ -170,9 +171,10 @@ func (s *Server) productUpdateHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	input := ecommerce.ProductsInput{}
-	err = FromJSON(r, &input)
+	err = FromJSON(w, r, &input)
 	if err != nil {
 		Error(w, r, err, http.StatusInternalServerError)
+		return
 	}
 
 	product, err := s.ProductsStore.GetByID(r.Context(), ID)
@@ -224,6 +226,7 @@ func (s *Server) productDeleteHandler(w http.ResponseWriter, r *http.Request) {
 	ID, err := strconv.Atoi(chi.URLParam(r, "id"))
 	if err != nil {
 		Error(w, r, ErrInvalidQuery, http.StatusBadRequest)
+		return
 	}
 
 	err = s.ProductsStore.Delete(r.Context(), ID)

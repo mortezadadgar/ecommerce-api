@@ -45,7 +45,7 @@ func (s *Server) usersGetHandler(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) usersPostHandler(w http.ResponseWriter, r *http.Request) {
 	input := ecommerce.UsersInput{}
-	err := FromJSON(r, &input)
+	err := FromJSON(w, r, &input)
 	if err != nil {
 		Error(w, r, err, http.StatusInternalServerError)
 		return
