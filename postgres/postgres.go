@@ -51,18 +51,18 @@ func FormatLimitOffset(limit int, offset int) string {
 }
 
 // FormatSort returns a SQL string for a giving column.
-func FormatSort(value string) string {
-	if value != "" {
-		return fmt.Sprintf("ORDER BY %s", value)
+func FormatSort(v string) string {
+	if v != "" {
+		return fmt.Sprintf("ORDER BY %s", v)
 	}
 
 	return ""
 }
 
 // FormatAndOp returns a SQL string for a giving category.
-func FormatAndOp(column string, value string) string {
-	if value != "" {
-		return fmt.Sprintf("AND %s='%s'", column, value)
+func FormatAndOp(c string, v string) string {
+	if v != "" {
+		return fmt.Sprintf("AND %s='%s'", c, v)
 	}
 
 	return ""
@@ -77,15 +77,10 @@ func BeginTransaction(db *sql.DB) (*sql.Tx, error) {
 	return tx, nil
 }
 
-func EndTransaction(ctx context.Context, tx *sql.Tx) error {
+func EndTransaction(tx *sql.Tx) error {
 	defer tx.Rollback()
 
-	err := ctx.Err()
-	if err != nil {
-		return err
-	}
-
-	err = tx.Commit()
+	err := tx.Commit()
 	if err != nil {
 		return ErrCommitTransaction
 	}

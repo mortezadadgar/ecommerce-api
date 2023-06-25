@@ -51,7 +51,7 @@ func (c *CategoriesStore) Create(ctx context.Context, category *ecommerce.Catego
 		return fmt.Errorf("failed to insert into categories: %v", err)
 	}
 
-	err = EndTransaction(ctx, tx)
+	err = EndTransaction(tx)
 	if err != nil {
 		return err
 	}
@@ -88,7 +88,7 @@ func (c *CategoriesStore) GetByID(ctx context.Context, id int) (*ecommerce.Categ
 		return nil, fmt.Errorf("failed to query category: %v", err)
 	}
 
-	err = EndTransaction(ctx, tx)
+	err = EndTransaction(tx)
 	if err != nil {
 		return nil, err
 	}
@@ -142,7 +142,7 @@ func (c *CategoriesStore) List(ctx context.Context, filter ecommerce.CategoriesF
 		return nil, err
 	}
 
-	err = EndTransaction(ctx, tx)
+	err = EndTransaction(tx)
 	if err != nil {
 		return nil, err
 	}
@@ -184,7 +184,7 @@ func (c *CategoriesStore) Update(ctx context.Context, category *ecommerce.Catego
 		return fmt.Errorf("failed to update category: %v", err)
 	}
 
-	err = EndTransaction(ctx, tx)
+	err = EndTransaction(tx)
 	if err != nil {
 		return err
 	}
@@ -219,7 +219,7 @@ func (c *CategoriesStore) Delete(ctx context.Context, id int) error {
 		return fmt.Errorf("expected to affect 1 rows, affected: %d", rows)
 	}
 
-	err = EndTransaction(ctx, tx)
+	err = EndTransaction(tx)
 	if err != nil {
 		return err
 	}

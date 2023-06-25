@@ -50,7 +50,7 @@ func (u *UsersStore) Create(ctx context.Context, user *ecommerce.Users) error {
 		return fmt.Errorf("failed to insert into users: %v", err)
 	}
 
-	err = EndTransaction(ctx, tx)
+	err = EndTransaction(tx)
 	if err != nil {
 		return err
 	}
@@ -85,7 +85,7 @@ func (u *UsersStore) GetByID(ctx context.Context, id int) (*ecommerce.Users, err
 		return nil, fmt.Errorf("failed to query user: %v", err)
 	}
 
-	err = EndTransaction(ctx, tx)
+	err = EndTransaction(tx)
 	if err != nil {
 		return nil, err
 	}

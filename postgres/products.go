@@ -57,7 +57,7 @@ func (p *ProductsStore) Create(ctx context.Context, product *ecommerce.Products)
 		return fmt.Errorf("failed to insert into products: %v", err)
 	}
 
-	err = EndTransaction(ctx, tx)
+	err = EndTransaction(tx)
 	if err != nil {
 		return err
 	}
@@ -98,7 +98,7 @@ func (p *ProductsStore) GetByID(ctx context.Context, id int) (*ecommerce.Product
 		}
 	}
 
-	err = EndTransaction(ctx, tx)
+	err = EndTransaction(tx)
 	if err != nil {
 		return nil, err
 	}
@@ -162,7 +162,7 @@ func (p *ProductsStore) List(ctx context.Context, filter ecommerce.ProductsFilte
 		return nil, sql.ErrNoRows
 	}
 
-	err = EndTransaction(ctx, tx)
+	err = EndTransaction(tx)
 	if err != nil {
 		return nil, err
 	}
@@ -205,7 +205,7 @@ func (p *ProductsStore) Update(ctx context.Context, product *ecommerce.Products)
 		return fmt.Errorf("failed to update product: %v", err)
 	}
 
-	err = EndTransaction(ctx, tx)
+	err = EndTransaction(tx)
 	if err != nil {
 		return err
 	}
@@ -238,7 +238,7 @@ func (p *ProductsStore) Delete(ctx context.Context, id int) error {
 		return fmt.Errorf("expected to affect 1 rows, affected: %d", rows)
 	}
 
-	err = EndTransaction(ctx, tx)
+	err = EndTransaction(tx)
 	if err != nil {
 		return err
 	}
