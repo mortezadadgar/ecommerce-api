@@ -12,7 +12,6 @@ package main
 //     - ...
 
 import (
-	"database/sql"
 	"log"
 	"os"
 	"os/signal"
@@ -29,16 +28,16 @@ func main() {
 		log.Fatal(err)
 	}
 
-	pg, err := postgres.Connect()
+	pg, err := postgres.New()
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	server := http.New(pg)
 
-	server.UsersStore = postgres.NewUsersStore(pg)
-	server.ProductsStore = postgres.NewProductsStore(pg)
-	server.CategoriesStore = postgres.NewCategoriesStore(pg)
+	server.UsersStore = postgres.NewUsersStore(pg.DB)
+	server.ProductsStore = postgres.NewProductsStore(pg.DB)
+	server.CategoriesStore = postgres.NewCategoriesStore(pg.DB)
 
 	server.Start()
 
@@ -60,16 +59,13 @@ func registerSignalNotify() chan os.Signal {
 	return sig
 }
 
-func close(server *http.Server, db *sql.DB) error {
+func close(server *http.Server, store http.Store) error {
 	err := server.Close()
 	if err != nil {
 		return err
 	}
 
-	err = db.Close()
-	if err != nil {
-		return err
-	}
+	store.Close()
 
 	return nil
 }

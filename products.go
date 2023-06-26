@@ -21,8 +21,8 @@ type Products struct {
 	Category    string    `json:"category"`
 	Price       int       `json:"price"`
 	Quantity    int       `json:"quantity"`
-	CreatedAt   time.Time `json:"created_at"`
-	UpdatedAt   time.Time `json:"updated_at"`
+	CreatedAt   time.Time `json:"created_at" db:"created_at"`
+	UpdatedAt   time.Time `json:"updated_at" db:"updated_at"`
 }
 
 type ProductsInput struct {

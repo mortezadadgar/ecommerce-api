@@ -7,37 +7,40 @@ import (
 	"fmt"
 
 	"github.com/jackc/pgerrcode"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/mortezadadgar/ecommerce-api"
 )
 
 type CategoriesStore struct {
-	db *sql.DB
+	db *pgxpool.Pool
 }
 
-func NewCategoriesStore(db *sql.DB) *CategoriesStore {
+func NewCategoriesStore(db *pgxpool.Pool) *CategoriesStore {
 	return &CategoriesStore{db: db}
 }
 
 // Create creates a new category in store.
 func (c *CategoriesStore) Create(ctx context.Context, category *ecommerce.Categories) error {
-	tx, err := BeginTransaction(c.db)
+	tx, err := c.db.Begin(ctx)
 	if err != nil {
-		return err
+		return ErrBeginTransaction
 	}
+	defer tx.Rollback(ctx)
 
 	query := `
 	 INSERT INTO categories(name, description)
-	 VALUES($1, $2)
+	 VALUES(@name, @description)
 	 RETURNING id, created_at, updated_at
 	`
 
-	args := []any{
-		&category.Name,
-		&category.Description,
+	args := pgx.NamedArgs{
+		"name":        &category.Name,
+		"description": &category.Description,
 	}
 
-	err = tx.QueryRowContext(ctx, query, args...).Scan(
+	err = tx.QueryRow(ctx, query, args).Scan(
 		&category.ID,
 		&category.CreatedAt,
 		&category.UpdatedAt,
@@ -53,9 +56,9 @@ func (c *CategoriesStore) Create(ctx context.Context, category *ecommerce.Catego
 		return fmt.Errorf("failed to insert into categories: %v", err)
 	}
 
-	err = EndTransaction(tx)
+	err = tx.Commit(ctx)
 	if err != nil {
-		return err
+		return ErrCommitTransaction
 	}
 
 	return nil
@@ -63,36 +66,38 @@ func (c *CategoriesStore) Create(ctx context.Context, category *ecommerce.Catego
 
 // GetByID gets category by id from store.
 func (c *CategoriesStore) GetByID(ctx context.Context, id int) (*ecommerce.Categories, error) {
-	tx, err := BeginTransaction(c.db)
+	tx, err := c.db.Begin(ctx)
 	if err != nil {
-		return nil, err
+		return nil, ErrBeginTransaction
 	}
+	defer tx.Rollback(ctx)
 
 	query := `
 	SELECT * FROM categories
-	WHERE id = $1
+	WHERE id = @id
 	`
 
-	category := ecommerce.Categories{}
-	args := []any{
-		&category.ID,
-		&category.Name,
-		&category.Description,
-		&category.CreatedAt,
-		&category.UpdatedAt,
+	args := pgx.NamedArgs{
+		"id": id,
 	}
 
-	err = tx.QueryRowContext(ctx, query, id).Scan(args...)
-	switch {
-	case err == sql.ErrNoRows:
-		return nil, sql.ErrNoRows
-	case err != nil:
-		return nil, fmt.Errorf("failed to query category: %v", err)
-	}
-
-	err = EndTransaction(tx)
+	rows, err := tx.Query(ctx, query, args)
 	if err != nil {
 		return nil, err
+	}
+	defer rows.Close()
+
+	category, err := pgx.CollectOneRow(rows, pgx.RowToStructByName[ecommerce.Categories])
+	switch {
+	case category.ID == 0:
+		return nil, sql.ErrNoRows
+	case err != nil:
+		return nil, fmt.Errorf("failed to get category: %v", err)
+	}
+
+	err = tx.Commit(ctx)
+	if err != nil {
+		return nil, ErrCommitTransaction
 	}
 
 	return &category, nil
@@ -101,10 +106,11 @@ func (c *CategoriesStore) GetByID(ctx context.Context, id int) (*ecommerce.Categ
 
 // List lists categories with optional filter.
 func (c *CategoriesStore) List(ctx context.Context, filter ecommerce.CategoriesFilter) (*[]ecommerce.Categories, error) {
-	tx, err := BeginTransaction(c.db)
+	tx, err := c.db.Begin(ctx)
 	if err != nil {
 		return nil, ErrBeginTransaction
 	}
+	defer tx.Rollback(ctx)
 
 	query := `
 	SELECT * FROM categories
@@ -114,29 +120,15 @@ func (c *CategoriesStore) List(ctx context.Context, filter ecommerce.CategoriesF
 	` + FormatLimitOffset(filter.Limit, filter.Offset) + `
 	`
 
-	rows, err := tx.QueryContext(ctx, query)
+	rows, err := tx.Query(ctx, query)
 	if err != nil {
 		return nil, fmt.Errorf("failed to list categories: %v", err)
 	}
 	defer rows.Close()
 
-	categories := []ecommerce.Categories{}
-
-	for rows.Next() {
-		category := ecommerce.Categories{}
-		args := []any{
-			&category.ID,
-			&category.Name,
-			&category.Description,
-			&category.CreatedAt,
-			&category.UpdatedAt,
-		}
-
-		if err := rows.Scan(args...); err != nil {
-			return nil, fmt.Errorf("failed to scan rows of categories: %v", err)
-		}
-
-		categories = append(categories, category)
+	categories, err := pgx.CollectRows(rows, pgx.RowToStructByName[ecommerce.Categories])
+	if err != nil {
+		return nil, fmt.Errorf("failed to scan rows of categories: %v", err)
 	}
 
 	err = rows.Err()
@@ -144,9 +136,13 @@ func (c *CategoriesStore) List(ctx context.Context, filter ecommerce.CategoriesF
 		return nil, err
 	}
 
-	err = EndTransaction(tx)
+	if len(categories) == 0 {
+		return nil, sql.ErrNoRows
+	}
+
+	err = tx.Commit(ctx)
 	if err != nil {
-		return nil, err
+		return nil, ErrCommitTransaction
 	}
 
 	return &categories, nil
@@ -154,25 +150,26 @@ func (c *CategoriesStore) List(ctx context.Context, filter ecommerce.CategoriesF
 
 // Update updates a category by id in store.
 func (c *CategoriesStore) Update(ctx context.Context, category *ecommerce.Categories) error {
-	tx, err := BeginTransaction(c.db)
+	tx, err := c.db.Begin(ctx)
 	if err != nil {
-		return err
+		return ErrBeginTransaction
 	}
+	defer tx.Rollback(ctx)
 
 	query := `
 	UPDATE categories
-	SET name = $1, description = $2, updated_at = NOW()
-	WHERE id = $3
+	SET name = @name, description = @description, updated_at = NOW()
+	WHERE id = @id
 	RETURNING updated_at
 	`
 
-	args := []any{
-		&category.Name,
-		&category.Description,
-		&category.ID,
+	args := pgx.NamedArgs{
+		"name":        &category.Name,
+		"description": &category.Description,
+		"id":          &category.ID,
 	}
 
-	err = tx.QueryRowContext(ctx, query, args...).Scan(&category.UpdatedAt)
+	err = tx.QueryRow(ctx, query, args).Scan(&category.UpdatedAt)
 	if err != nil {
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) {
@@ -183,31 +180,36 @@ func (c *CategoriesStore) Update(ctx context.Context, category *ecommerce.Catego
 				return ErrForeinKeyViolation
 			}
 		}
+
 		return fmt.Errorf("failed to update category: %v", err)
 	}
 
-	err = EndTransaction(tx)
+	err = tx.Commit(ctx)
 	if err != nil {
-		return err
+		return ErrCommitTransaction
 	}
 
 	return nil
-
 }
 
 // Delete deletes a category by id from store.
 func (c *CategoriesStore) Delete(ctx context.Context, id int) error {
-	tx, err := BeginTransaction(c.db)
+	tx, err := c.db.Begin(ctx)
 	if err != nil {
-		return err
+		return ErrBeginTransaction
 	}
+	defer tx.Rollback(ctx)
 
 	query := `
 	DELETE FROM categories
-	WHERE id = $1
+	WHERE id = @id
 	`
 
-	result, err := tx.ExecContext(ctx, query, id)
+	args := pgx.NamedArgs{
+		"id": id,
+	}
+
+	result, err := tx.Exec(ctx, query, args)
 	if err != nil {
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) {
@@ -219,18 +221,14 @@ func (c *CategoriesStore) Delete(ctx context.Context, id int) error {
 		return fmt.Errorf("failed to delete from category: %v", err)
 	}
 
-	rows, err := result.RowsAffected()
-	if err != nil {
-		return err
-	}
-
+	rows := result.RowsAffected()
 	if rows != 1 {
 		return sql.ErrNoRows
 	}
 
-	err = EndTransaction(tx)
+	err = tx.Commit(ctx)
 	if err != nil {
-		return err
+		return ErrCommitTransaction
 	}
 
 	return nil

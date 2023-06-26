@@ -8,7 +8,6 @@ package http
 
 import (
 	"context"
-	"database/sql"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -31,7 +30,7 @@ type Server struct {
 	UsersStore      ecommerce.UsersService
 	ProductsStore   ecommerce.ProductsService
 	CategoriesStore ecommerce.CategoriesService
-	db              *sql.DB
+	store           Store
 	*http.Server
 }
 
@@ -41,15 +40,20 @@ var ErrInvalidQuery = errors.New("invalid url query")
 
 const maxBytesRead = 1_048_576
 
+type Store interface {
+	Close() error
+	Ping(ctx context.Context) error
+}
+
 // New returns a new instance of Server.
-func New(db *sql.DB) *Server {
+func New(store Store) *Server {
 	s := Server{
 		Server: &http.Server{
 			Addr:         os.Getenv("ADDRESS"),
 			ReadTimeout:  5 * time.Second,
 			WriteTimeout: 10 * time.Second,
 		},
-		db: db,
+		store: store,
 	}
 
 	r := chi.NewMux()
@@ -110,7 +114,7 @@ type healthResponse struct {
 
 func (s *Server) healthHandler(w http.ResponseWriter, r *http.Request) {
 	var dbStatus string
-	if err := s.db.PingContext(r.Context()); err != nil {
+	if err := s.store.Ping(r.Context()); err != nil {
 		dbStatus = "Connection Error"
 	} else {
 		dbStatus = "Connection OK"

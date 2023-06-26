@@ -14,9 +14,9 @@ type WrapUsers struct {
 type Users struct {
 	ID        int       `json:"-"`
 	Email     string    `json:"email"`
-	Password  []byte    `json:"-"`
-	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
+	Password  []byte    `json:"-" db:"-"`
+	CreatedAt time.Time `json:"created_at" db:"created_at"`
+	UpdatedAt time.Time `json:"updated_at" db:"updated_at"`
 }
 
 type UsersInput struct {

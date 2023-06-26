@@ -2,13 +2,14 @@ package postgres
 
 import (
 	"context"
-	"database/sql"
 	"errors"
 	"fmt"
 	"os"
 	"time"
 
 	// postgres driver.
+
+	"github.com/jackc/pgx/v5/pgxpool"
 	_ "github.com/jackc/pgx/v5/stdlib"
 )
 
@@ -19,22 +20,48 @@ var ErrDuplicatedEntries = errors.New("duplicated entries are not allowed")
 var ErrUnableDeleteEntry = errors.New("unable to remove the entry")
 var ErrForeinKeyViolation = errors.New("product category must matches a category entry")
 
-// Connect initialize a new postgresql driver.
-func Connect() (*sql.DB, error) {
+type postgres struct {
+	DB *pgxpool.Pool
+}
+
+// New returns a new instance of postgres and connect as well.
+func New() (*postgres, error) {
+	db, err := connect()
+	if err != nil {
+		return nil, err
+	}
+
+	return &postgres{
+		DB: db,
+	}, nil
+}
+
+func connect() (*pgxpool.Pool, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	db, err := sql.Open("pgx", os.Getenv("DSN"))
+	db, err := pgxpool.New(ctx, os.Getenv("DSN"))
 	if err != nil {
 		return nil, fmt.Errorf("failed to open postgresql: %v", err)
 	}
 
-	err = db.PingContext(ctx)
+	err = db.Ping(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to make connection to pg: %v", err)
 	}
 
 	return db, nil
+}
+
+// Close closes postgres connection.
+func (p postgres) Close() error {
+	p.DB.Close()
+	return nil
+}
+
+// Ping test postgres connection.
+func (p postgres) Ping(ctx context.Context) error {
+	return p.DB.Ping(ctx)
 }
 
 // FormatLimitOffset returns a SQL string for a given limit & offset.
@@ -67,24 +94,4 @@ func FormatAndOp(c string, v string) string {
 	}
 
 	return ""
-}
-
-func BeginTransaction(db *sql.DB) (*sql.Tx, error) {
-	tx, err := db.Begin()
-	if err != nil {
-		return nil, ErrBeginTransaction
-	}
-
-	return tx, nil
-}
-
-func EndTransaction(tx *sql.Tx) error {
-	defer tx.Rollback()
-
-	err := tx.Commit()
-	if err != nil {
-		return ErrCommitTransaction
-	}
-
-	return nil
 }

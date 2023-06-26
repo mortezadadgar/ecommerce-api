@@ -7,39 +7,42 @@ import (
 	"fmt"
 
 	"github.com/jackc/pgerrcode"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/mortezadadgar/ecommerce-api"
 )
 
 type ProductsStore struct {
-	db *sql.DB
+	db *pgxpool.Pool
 }
 
-func NewProductsStore(db *sql.DB) *ProductsStore {
+func NewProductsStore(db *pgxpool.Pool) *ProductsStore {
 	return &ProductsStore{db: db}
 }
 
 func (p *ProductsStore) Create(ctx context.Context, product *ecommerce.Products) error {
-	tx, err := BeginTransaction(p.db)
+	tx, err := p.db.Begin(ctx)
 	if err != nil {
-		return err
+		return ErrBeginTransaction
 	}
+	defer tx.Rollback(ctx)
 
 	query := `
 	 INSERT INTO products(name, description, category, price, quantity)
-	 VALUES($1, $2, $3, $4, $5)
+	 VALUES(@name, @description, @category, @price, @quantity)
 	 RETURNING id, created_at, updated_at
 	`
 
-	args := []any{
-		&product.Name,
-		&product.Description,
-		&product.Category,
-		&product.Price,
-		&product.Quantity,
+	args := pgx.NamedArgs{
+		"name":        &product.Name,
+		"description": &product.Description,
+		"category":    &product.Category,
+		"price":       &product.Price,
+		"quantity":    &product.Quantity,
 	}
 
-	err = tx.QueryRowContext(ctx, query, args...).Scan(
+	err = tx.QueryRow(ctx, query, args).Scan(
 		&product.ID,
 		&product.CreatedAt,
 		&product.UpdatedAt,
@@ -54,63 +57,62 @@ func (p *ProductsStore) Create(ctx context.Context, product *ecommerce.Products)
 				return ErrForeinKeyViolation
 			}
 		}
+
 		return fmt.Errorf("failed to insert into products: %v", err)
 	}
 
-	err = EndTransaction(tx)
+	err = tx.Commit(ctx)
 	if err != nil {
-		return err
+		return ErrCommitTransaction
 	}
 
 	return nil
 }
 
 func (p *ProductsStore) GetByID(ctx context.Context, id int) (*ecommerce.Products, error) {
-	tx, err := BeginTransaction(p.db)
+	tx, err := p.db.Begin(ctx)
 	if err != nil {
-		return nil, err
+		return nil, ErrBeginTransaction
 	}
+	defer tx.Rollback(ctx)
 
 	query := `
 	SELECT * FROM products
-	WHERE id = $1
+	WHERE id = @id
 	`
 
-	product := &ecommerce.Products{}
-	args := []any{
-		&product.ID,
-		&product.Name,
-		&product.Description,
-		&product.Category,
-		&product.Price,
-		&product.Quantity,
-		&product.CreatedAt,
-		&product.UpdatedAt,
+	args := pgx.NamedArgs{
+		"id": id,
 	}
 
-	err = tx.QueryRowContext(ctx, query, id).Scan(args...)
-	if err != nil {
-		switch err {
-		case sql.ErrNoRows:
-			return nil, sql.ErrNoRows
-		default:
-			return nil, fmt.Errorf("failed to query product: %v", err)
-		}
-	}
-
-	err = EndTransaction(tx)
+	rows, err := tx.Query(ctx, query, args)
 	if err != nil {
 		return nil, err
 	}
+	defer rows.Close()
 
-	return product, nil
+	product, err := pgx.CollectOneRow(rows, pgx.RowToStructByName[ecommerce.Products])
+	switch {
+	case product.ID == 0:
+		return nil, sql.ErrNoRows
+	case err != nil:
+		return nil, fmt.Errorf("failed to get product: %v", err)
+	}
+
+	err = tx.Commit(ctx)
+	if err != nil {
+		return nil, ErrCommitTransaction
+	}
+
+	return &product, nil
 }
 
 func (p *ProductsStore) List(ctx context.Context, filter ecommerce.ProductsFilter) (*[]ecommerce.Products, error) {
-	tx, err := BeginTransaction(p.db)
+	tx, err := p.db.Begin(ctx)
 	if err != nil {
-		return nil, err
+		return nil, ErrBeginTransaction
 	}
+	defer tx.Rollback(ctx)
 
 	query := `
 	SELECT * FROM products
@@ -121,36 +123,15 @@ func (p *ProductsStore) List(ctx context.Context, filter ecommerce.ProductsFilte
 	` + FormatLimitOffset(filter.Limit, filter.Offset) + `
 	`
 
-	rows, err := tx.QueryContext(ctx, query)
+	rows, err := tx.Query(ctx, query)
 	if err != nil {
-		var pgErr *pgconn.PgError
-		if errors.As(err, &pgErr) && pgErr.Code == pgerrcode.UndefinedColumn {
-			return nil, ErrInvalidColumn
-		}
 		return nil, fmt.Errorf("failed to query list products: %v", err)
 	}
 	defer rows.Close()
 
-	products := []ecommerce.Products{}
-	for rows.Next() {
-		product := ecommerce.Products{}
-		args := []any{
-			&product.ID,
-			&product.Name,
-			&product.Description,
-			&product.Category,
-			&product.Price,
-			&product.Quantity,
-			&product.CreatedAt,
-			&product.UpdatedAt,
-		}
-
-		err := rows.Scan(args...)
-		if err != nil {
-			return nil, fmt.Errorf("failed to scan rows of products: %v", err)
-		}
-
-		products = append(products, product)
+	products, err := pgx.CollectRows(rows, pgx.RowToStructByName[ecommerce.Products])
+	if err != nil {
+		return nil, fmt.Errorf("failed to scan rows of products: %v", err)
 	}
 
 	err = rows.Err()
@@ -162,36 +143,37 @@ func (p *ProductsStore) List(ctx context.Context, filter ecommerce.ProductsFilte
 		return nil, sql.ErrNoRows
 	}
 
-	err = EndTransaction(tx)
+	err = tx.Commit(ctx)
 	if err != nil {
-		return nil, err
+		return nil, ErrCommitTransaction
 	}
 
 	return &products, nil
 }
 func (p *ProductsStore) Update(ctx context.Context, product *ecommerce.Products) error {
-	tx, err := BeginTransaction(p.db)
+	tx, err := p.db.Begin(ctx)
 	if err != nil {
-		return err
+		return ErrBeginTransaction
 	}
+	defer tx.Rollback(ctx)
 
 	query := `
 	UPDATE products
-	SET name = $1, description = $2, category = $3, price = $4, quantity = $5, updated_at = NOW()
-	WHERE id = $6
+	SET name = @name, description = @description, category = @category, price = @price, quantity = @quantity, updated_at = NOW()
+	WHERE id = @id
 	RETURNING updated_at
 	`
 
-	args := []any{
-		&product.Name,
-		&product.Description,
-		&product.Category,
-		&product.Price,
-		&product.Quantity,
-		&product.ID,
+	args := pgx.NamedArgs{
+		"name":        &product.Name,
+		"description": &product.Description,
+		"category":    &product.Category,
+		"price":       &product.Price,
+		"quantity":    &product.Quantity,
+		"id":          &product.ID,
 	}
 
-	err = tx.QueryRowContext(ctx, query, args...).Scan(&product.UpdatedAt)
+	err = tx.QueryRow(ctx, query, args).Scan(&product.UpdatedAt)
 	if err != nil {
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) {
@@ -202,45 +184,47 @@ func (p *ProductsStore) Update(ctx context.Context, product *ecommerce.Products)
 				return ErrForeinKeyViolation
 			}
 		}
+
 		return fmt.Errorf("failed to update product: %v", err)
 	}
 
-	err = EndTransaction(tx)
+	err = tx.Commit(ctx)
 	if err != nil {
-		return err
+		return ErrCommitTransaction
 	}
 
 	return nil
 }
 
 func (p *ProductsStore) Delete(ctx context.Context, id int) error {
-	tx, err := BeginTransaction(p.db)
+	tx, err := p.db.Begin(ctx)
 	if err != nil {
-		return err
+		return ErrBeginTransaction
 	}
+	defer tx.Rollback(ctx)
 
 	query := `
 	DELETE FROM products
-	WHERE id = $1
+	WHERE id = @id
 	`
 
-	result, err := tx.ExecContext(ctx, query, id)
+	args := pgx.NamedArgs{
+		"id": id,
+	}
+
+	result, err := tx.Exec(ctx, query, args)
 	if err != nil {
 		return fmt.Errorf("failed to delete from products: %v", err)
 	}
 
-	rows, err := result.RowsAffected()
-	if err != nil {
-		return err
-	}
-
+	rows := result.RowsAffected()
 	if rows != 1 {
 		return fmt.Errorf("expected to affect 1 rows, affected: %d", rows)
 	}
 
-	err = EndTransaction(tx)
+	err = tx.Commit(ctx)
 	if err != nil {
-		return err
+		return ErrCommitTransaction
 	}
 
 	return nil

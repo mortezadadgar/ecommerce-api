@@ -7,35 +7,38 @@ import (
 	"fmt"
 
 	"github.com/jackc/pgerrcode"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/mortezadadgar/ecommerce-api"
 )
 
 type UsersStore struct {
-	db *sql.DB
+	db *pgxpool.Pool
 }
 
-func NewUsersStore(db *sql.DB) *UsersStore {
+func NewUsersStore(db *pgxpool.Pool) *UsersStore {
 	return &UsersStore{db: db}
 }
 
 func (u *UsersStore) Create(ctx context.Context, user *ecommerce.Users) error {
-	tx, err := BeginTransaction(u.db)
+	tx, err := u.db.Begin(ctx)
 	if err != nil {
-		return err
+		return ErrBeginTransaction
 	}
+	defer tx.Rollback(ctx)
 
 	query := `
-	INSERT INTO users(email, password_hash) VALUES($1, $2)
+	INSERT INTO users(email, password_hash) VALUES(@email, @password_hash)
 	RETURNING id, created_at, updated_at
 	`
 
-	args := []any{
-		&user.Email,
-		&user.Password,
+	args := pgx.NamedArgs{
+		"email":         &user.Email,
+		"password_hash": &user.Password,
 	}
 
-	err = tx.QueryRowContext(ctx, query, args...).Scan(
+	err = tx.QueryRow(ctx, query, args).Scan(
 		&user.ID,
 		&user.CreatedAt,
 		&user.UpdatedAt,
@@ -47,47 +50,52 @@ func (u *UsersStore) Create(ctx context.Context, user *ecommerce.Users) error {
 				return ErrDuplicatedEntries
 			}
 		}
+
 		return fmt.Errorf("failed to insert into users: %v", err)
 	}
 
-	err = EndTransaction(tx)
+	err = tx.Commit(ctx)
 	if err != nil {
-		return err
+		return ErrCommitTransaction
 	}
 
 	return nil
 }
 
 func (u *UsersStore) GetByID(ctx context.Context, id int) (*ecommerce.Users, error) {
-	tx, err := BeginTransaction(u.db)
+	tx, err := u.db.Begin(ctx)
 	if err != nil {
-		return nil, err
+		return nil, ErrBeginTransaction
 	}
+	defer tx.Rollback(ctx)
 
 	query := `
 	SELECT id, email, created_at, updated_at FROM users
-	WHERE id = $1
+	WHERE id = @id
 	`
 
-	user := ecommerce.Users{}
-	args := []any{
-		&user.ID,
-		&user.Email,
-		&user.CreatedAt,
-		&user.UpdatedAt,
+	args := pgx.NamedArgs{
+		"id": id,
 	}
 
-	err = tx.QueryRowContext(ctx, query, id).Scan(args...)
+	rows, err := tx.Query(ctx, query, args)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	user, err := pgx.CollectOneRow(rows, pgx.RowToStructByName[ecommerce.Users])
 	switch {
-	case err == sql.ErrNoRows:
+	// serial type starts from 1
+	case user.ID == 0:
 		return nil, sql.ErrNoRows
 	case err != nil:
 		return nil, fmt.Errorf("failed to query user: %v", err)
 	}
 
-	err = EndTransaction(tx)
+	err = tx.Commit(ctx)
 	if err != nil {
-		return nil, err
+		return nil, ErrCommitTransaction
 	}
 
 	return &user, nil
