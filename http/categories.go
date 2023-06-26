@@ -47,7 +47,7 @@ func (s *Server) getCategoryHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = ToJSON(w, ecommerce.WrapCategories{Category: *category})
+	err = ToJSON(w, ecommerce.WrapCategories{Category: *category}, http.StatusOK)
 	if err != nil {
 		Error(w, r, err, http.StatusInternalServerError)
 	}
@@ -92,7 +92,7 @@ func (s *Server) listCategoriesHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = ToJSON(w, ecommerce.WrapCategoriesList{Categories: *categories})
+	err = ToJSON(w, ecommerce.WrapCategoriesList{Categories: *categories}, http.StatusOK)
 	if err != nil {
 		Error(w, r, err, http.StatusInternalServerError)
 	}
@@ -138,7 +138,7 @@ func (s *Server) createCategoryHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = ToJSON(w, ecommerce.WrapCategories{Category: category})
+	err = ToJSON(w, ecommerce.WrapCategories{Category: category}, http.StatusCreated)
 	if err != nil {
 		Error(w, r, err, http.StatusInternalServerError)
 	}
@@ -200,7 +200,7 @@ func (s *Server) updateCategoryHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = ToJSON(w, ecommerce.WrapCategories{Category: *category})
+	err = ToJSON(w, ecommerce.WrapCategories{Category: *category}, http.StatusOK)
 	if err != nil {
 		Error(w, r, err, http.StatusInternalServerError)
 	}

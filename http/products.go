@@ -50,7 +50,7 @@ func (s *Server) getProductHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = ToJSON(w, ecommerce.WrapProducts{Product: *product})
+	err = ToJSON(w, ecommerce.WrapProducts{Product: *product}, http.StatusOK)
 	if err != nil {
 		Error(w, r, err, http.StatusInternalServerError)
 	}
@@ -102,7 +102,7 @@ func (s *Server) listProductsHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = ToJSON(w, ecommerce.WrapProductsList{Products: *products})
+	err = ToJSON(w, ecommerce.WrapProductsList{Products: *products}, http.StatusOK)
 	if err != nil {
 		Error(w, r, err, http.StatusInternalServerError)
 	}
@@ -148,7 +148,7 @@ func (s *Server) createProductHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Location", fmt.Sprintf("/products/%d", product.ID))
-	err = ToJSON(w, ecommerce.WrapProducts{Product: product})
+	err = ToJSON(w, ecommerce.WrapProducts{Product: product}, http.StatusCreated)
 	if err != nil {
 		Error(w, r, err, http.StatusInternalServerError)
 	}
@@ -210,7 +210,7 @@ func (s *Server) updateProductHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = ToJSON(w, ecommerce.WrapProducts{Product: *product})
+	err = ToJSON(w, ecommerce.WrapProducts{Product: *product}, http.StatusOK)
 	if err != nil {
 		Error(w, r, err, http.StatusInternalServerError)
 	}

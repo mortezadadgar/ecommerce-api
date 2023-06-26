@@ -130,7 +130,7 @@ func (s *Server) healthHandler(w http.ResponseWriter, r *http.Request) {
 		MemUsage: memUsage,
 	}
 
-	err := ToJSON(w, h)
+	err := ToJSON(w, h, http.StatusOK)
 	if err != nil {
 		Error(w, r, err, http.StatusInternalServerError)
 	}
@@ -166,7 +166,8 @@ func FromJSON(w http.ResponseWriter, r *http.Request, v any) error {
 }
 
 // ToJSON encodes to giving strcut.
-func ToJSON(w http.ResponseWriter, v any) error {
+func ToJSON(w http.ResponseWriter, v any, code int) error {
+	w.WriteHeader(code)
 	return json.NewEncoder(w).Encode(v)
 }
 
