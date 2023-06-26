@@ -12,11 +12,11 @@ import (
 
 func (s *Server) registerCategoriesRoutes(r *chi.Mux) {
 	r.Route("/categories", func(r chi.Router) {
-		r.Get("/{id}", s.categoriesGetHandler)
-		r.Get("/", s.categoriesListHandler)
-		r.Post("/", s.categoriesCreateHandler)
-		r.Patch("/{id}", s.categoriesUpdateHandler)
-		r.Delete("/{id}", s.categoriesDeleteHandler)
+		r.Get("/{id}", s.getCategoryHandler)
+		r.Get("/", s.listCategoriesHandler)
+		r.Post("/", s.createCategoryHandler)
+		r.Patch("/{id}", s.updateCategoryHandler)
+		r.Delete("/{id}", s.deleteCategoryHandler)
 	})
 }
 
@@ -28,7 +28,7 @@ func (s *Server) registerCategoriesRoutes(r *chi.Mux) {
 // @Failure      400  {object}  http.HTTPError
 // @Failure      500  {object}  http.HTTPError
 // @Router       /categories/{id} [get]
-func (s *Server) categoriesGetHandler(w http.ResponseWriter, r *http.Request) {
+func (s *Server) getCategoryHandler(w http.ResponseWriter, r *http.Request) {
 	ID, err := strconv.Atoi(chi.URLParam(r, "id"))
 	if err != nil {
 		Error(w, r, ErrInvalidQuery, http.StatusBadRequest)
@@ -60,7 +60,7 @@ func (s *Server) categoriesGetHandler(w http.ResponseWriter, r *http.Request) {
 // @Failure      400  {object}  http.HTTPError
 // @Failure      500  {object}  http.HTTPError
 // @Router       /categories/   [get]
-func (s *Server) categoriesListHandler(w http.ResponseWriter, r *http.Request) {
+func (s *Server) listCategoriesHandler(w http.ResponseWriter, r *http.Request) {
 	limit, err := ParseIntQuery(r, "limit")
 	if err != nil {
 		Error(w, r, ErrInvalidQuery, http.StatusBadRequest)
@@ -108,7 +108,7 @@ func (s *Server) categoriesListHandler(w http.ResponseWriter, r *http.Request) {
 // @Failure      413          {object}    http.HTTPError
 // @Failure      500          {object}    http.HTTPError
 // @Router       /categories/ [post]
-func (s *Server) categoriesCreateHandler(w http.ResponseWriter, r *http.Request) {
+func (s *Server) createCategoryHandler(w http.ResponseWriter, r *http.Request) {
 	input := ecommerce.CategoriesInput{}
 
 	err := FromJSON(w, r, &input)
@@ -154,7 +154,7 @@ func (s *Server) categoriesCreateHandler(w http.ResponseWriter, r *http.Request)
 // @Failure      413          {object}    http.HTTPError
 // @Failure      500          {object}    http.HTTPError
 // @Router       /categories/ [patch]
-func (s *Server) categoriesUpdateHandler(w http.ResponseWriter, r *http.Request) {
+func (s *Server) updateCategoryHandler(w http.ResponseWriter, r *http.Request) {
 	ID, err := strconv.Atoi(chi.URLParam(r, "id"))
 	if err != nil {
 		Error(w, r, ErrInvalidQuery, http.StatusBadRequest)
@@ -213,7 +213,7 @@ func (s *Server) categoriesUpdateHandler(w http.ResponseWriter, r *http.Request)
 // @Failure      400          {object}    http.HTTPError
 // @Failure      500          {object}    http.HTTPError
 // @Router       /categories/{id} [delete]
-func (s *Server) categoriesDeleteHandler(w http.ResponseWriter, r *http.Request) {
+func (s *Server) deleteCategoryHandler(w http.ResponseWriter, r *http.Request) {
 	ID, err := strconv.Atoi(chi.URLParam(r, "id"))
 	if err != nil {
 		Error(w, r, ErrInvalidQuery, http.StatusBadRequest)

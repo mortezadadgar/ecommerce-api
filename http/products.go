@@ -13,11 +13,12 @@ import (
 
 func (s *Server) registerProductsRoutes(r *chi.Mux) {
 	r.Route("/products", func(r chi.Router) {
-		r.Get("/{id}", s.productGetHandler)
-		r.Get("/", s.productsListHandler)
-		r.Post("/", s.productCreateHandler)
-		r.Patch("/{id}", s.productUpdateHandler)
-		r.Delete("/{id}", s.productDeleteHandler)
+		r.Get("/{id}", s.getProductHandler)
+		r.Get("/", s.listProductsHandler)
+		r.Post("/", s.createProductHandler)
+		r.Patch("/{id}", s.updateProductHandler)
+		r.Delete("/{id}", s.deleteProductHandler)
+		// bulk inserts data to db
 	})
 
 }
@@ -30,7 +31,7 @@ func (s *Server) registerProductsRoutes(r *chi.Mux) {
 // @Failure      400            {object}    http.HTTPError
 // @Failure      500            {object}    http.HTTPError
 // @Router       /products/{id} [get]
-func (s *Server) productGetHandler(w http.ResponseWriter, r *http.Request) {
+func (s *Server) getProductHandler(w http.ResponseWriter, r *http.Request) {
 	ID, err := strconv.Atoi(chi.URLParam(r, "id"))
 	if err != nil {
 		Error(w, r, ErrInvalidQuery, http.StatusBadRequest)
@@ -66,7 +67,7 @@ func (s *Server) productGetHandler(w http.ResponseWriter, r *http.Request) {
 // @Failure      400          {object}    http.HTTPError
 // @Failure      500          {object}    http.HTTPError
 // @Router       /products/   [get]
-func (s *Server) productsListHandler(w http.ResponseWriter, r *http.Request) {
+func (s *Server) listProductsHandler(w http.ResponseWriter, r *http.Request) {
 	limit, err := ParseIntQuery(r, "limit")
 	if err != nil {
 		Error(w, r, ErrInvalidQuery, http.StatusBadRequest)
@@ -116,7 +117,7 @@ func (s *Server) productsListHandler(w http.ResponseWriter, r *http.Request) {
 // @Failure      400          {object}    http.HTTPError
 // @Failure      500          {object}    http.HTTPError
 // @Router       /products/   [post]
-func (s *Server) productCreateHandler(w http.ResponseWriter, r *http.Request) {
+func (s *Server) createProductHandler(w http.ResponseWriter, r *http.Request) {
 	input := ecommerce.ProductsInput{}
 	err := FromJSON(w, r, &input)
 	if err != nil {
@@ -163,7 +164,7 @@ func (s *Server) productCreateHandler(w http.ResponseWriter, r *http.Request) {
 // @Failure      413          {object}    http.HTTPError
 // @Failure      500          {object}    http.HTTPError
 // @Router       /products/ [patch]
-func (s *Server) productUpdateHandler(w http.ResponseWriter, r *http.Request) {
+func (s *Server) updateProductHandler(w http.ResponseWriter, r *http.Request) {
 	ID, err := strconv.Atoi(chi.URLParam(r, "id"))
 	if err != nil {
 		Error(w, r, ErrInvalidQuery, http.StatusBadRequest)
@@ -222,7 +223,7 @@ func (s *Server) productUpdateHandler(w http.ResponseWriter, r *http.Request) {
 // @Failure      400          {object}    http.HTTPError
 // @Failure      500          {object}    http.HTTPError
 // @Router       /products/{id} [delete]
-func (s *Server) productDeleteHandler(w http.ResponseWriter, r *http.Request) {
+func (s *Server) deleteProductHandler(w http.ResponseWriter, r *http.Request) {
 	ID, err := strconv.Atoi(chi.URLParam(r, "id"))
 	if err != nil {
 		Error(w, r, ErrInvalidQuery, http.StatusBadRequest)

@@ -13,12 +13,15 @@ import (
 
 func (s *Server) registerUsersRoutes(r *chi.Mux) {
 	r.Route("/users", func(r chi.Router) {
-		r.Get("/{id}", s.usersGetHandler)
-		r.Post("/", s.usersPostHandler)
+		r.Get("/{id}", s.getUsersHandler) // admin only
+		r.Post("/", s.createUsersHandler)
+		// login
+		// logout
+		// generate tokens for admins
 	})
 }
 
-func (s *Server) usersGetHandler(w http.ResponseWriter, r *http.Request) {
+func (s *Server) getUsersHandler(w http.ResponseWriter, r *http.Request) {
 	ID, err := strconv.Atoi(chi.URLParam(r, "id"))
 	if err != nil {
 		Error(w, r, ErrInvalidQuery, http.StatusBadRequest)
@@ -43,7 +46,7 @@ func (s *Server) usersGetHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (s *Server) usersPostHandler(w http.ResponseWriter, r *http.Request) {
+func (s *Server) createUsersHandler(w http.ResponseWriter, r *http.Request) {
 	input := ecommerce.UsersInput{}
 	err := FromJSON(w, r, &input)
 	if err != nil {

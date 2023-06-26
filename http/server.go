@@ -67,6 +67,7 @@ func New(store Store) *Server {
 	s.registerUsersRoutes(r)
 	s.registerProductsRoutes(r)
 	s.registerCategoriesRoutes(r)
+	// search in products and categories
 
 	r.Get("/healthcheck", s.healthHandler)
 	r.NotFound(s.notFoundHandler)
