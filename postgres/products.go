@@ -10,7 +10,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/mortezadadgar/ecommerce-api"
+	"github.com/mortezadadgar/ecommerce-api/domain"
 )
 
 type ProductsStore struct {
@@ -21,7 +21,7 @@ func NewProductsStore(db *pgxpool.Pool) *ProductsStore {
 	return &ProductsStore{db: db}
 }
 
-func (p *ProductsStore) Create(ctx context.Context, product *ecommerce.Products) error {
+func (p *ProductsStore) Create(ctx context.Context, product *domain.Products) error {
 	tx, err := p.db.Begin(ctx)
 	if err != nil {
 		return ErrBeginTransaction
@@ -69,7 +69,7 @@ func (p *ProductsStore) Create(ctx context.Context, product *ecommerce.Products)
 	return nil
 }
 
-func (p *ProductsStore) GetByID(ctx context.Context, id int) (*ecommerce.Products, error) {
+func (p *ProductsStore) GetByID(ctx context.Context, id int) (*domain.Products, error) {
 	tx, err := p.db.Begin(ctx)
 	if err != nil {
 		return nil, ErrBeginTransaction
@@ -91,7 +91,7 @@ func (p *ProductsStore) GetByID(ctx context.Context, id int) (*ecommerce.Product
 	}
 	defer rows.Close()
 
-	product, err := pgx.CollectOneRow(rows, pgx.RowToStructByName[ecommerce.Products])
+	product, err := pgx.CollectOneRow(rows, pgx.RowToStructByName[domain.Products])
 	switch {
 	case product.ID == 0:
 		return nil, sql.ErrNoRows
@@ -107,7 +107,7 @@ func (p *ProductsStore) GetByID(ctx context.Context, id int) (*ecommerce.Product
 	return &product, nil
 }
 
-func (p *ProductsStore) List(ctx context.Context, filter ecommerce.ProductsFilter) (*[]ecommerce.Products, error) {
+func (p *ProductsStore) List(ctx context.Context, filter domain.ProductsFilter) (*[]domain.Products, error) {
 	tx, err := p.db.Begin(ctx)
 	if err != nil {
 		return nil, ErrBeginTransaction
@@ -129,7 +129,7 @@ func (p *ProductsStore) List(ctx context.Context, filter ecommerce.ProductsFilte
 	}
 	defer rows.Close()
 
-	products, err := pgx.CollectRows(rows, pgx.RowToStructByName[ecommerce.Products])
+	products, err := pgx.CollectRows(rows, pgx.RowToStructByName[domain.Products])
 	if err != nil {
 		return nil, fmt.Errorf("failed to scan rows of products: %v", err)
 	}
@@ -150,7 +150,7 @@ func (p *ProductsStore) List(ctx context.Context, filter ecommerce.ProductsFilte
 
 	return &products, nil
 }
-func (p *ProductsStore) Update(ctx context.Context, product *ecommerce.Products) error {
+func (p *ProductsStore) Update(ctx context.Context, product *domain.Products) error {
 	tx, err := p.db.Begin(ctx)
 	if err != nil {
 		return ErrBeginTransaction

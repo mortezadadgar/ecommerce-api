@@ -10,7 +10,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/mortezadadgar/ecommerce-api"
+	"github.com/mortezadadgar/ecommerce-api/domain"
 )
 
 type UsersStore struct {
@@ -21,7 +21,7 @@ func NewUsersStore(db *pgxpool.Pool) *UsersStore {
 	return &UsersStore{db: db}
 }
 
-func (u *UsersStore) Create(ctx context.Context, user *ecommerce.Users) error {
+func (u *UsersStore) Create(ctx context.Context, user *domain.Users) error {
 	tx, err := u.db.Begin(ctx)
 	if err != nil {
 		return ErrBeginTransaction
@@ -62,7 +62,7 @@ func (u *UsersStore) Create(ctx context.Context, user *ecommerce.Users) error {
 	return nil
 }
 
-func (u *UsersStore) GetByID(ctx context.Context, id int) (*ecommerce.Users, error) {
+func (u *UsersStore) GetByID(ctx context.Context, id int) (*domain.Users, error) {
 	tx, err := u.db.Begin(ctx)
 	if err != nil {
 		return nil, ErrBeginTransaction
@@ -84,7 +84,7 @@ func (u *UsersStore) GetByID(ctx context.Context, id int) (*ecommerce.Users, err
 	}
 	defer rows.Close()
 
-	user, err := pgx.CollectOneRow(rows, pgx.RowToStructByName[ecommerce.Users])
+	user, err := pgx.CollectOneRow(rows, pgx.RowToStructByName[domain.Users])
 	switch {
 	// serial type starts from 1
 	case user.ID == 0:

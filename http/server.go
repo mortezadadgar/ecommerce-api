@@ -21,15 +21,15 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
-	"github.com/mortezadadgar/ecommerce-api"
+	"github.com/mortezadadgar/ecommerce-api/domain"
 	_ "github.com/swaggo/http-swagger/example/go-chi/docs"
 	httpSwagger "github.com/swaggo/http-swagger/v2"
 )
 
 type Server struct {
-	UsersStore      ecommerce.UsersService
-	ProductsStore   ecommerce.ProductsService
-	CategoriesStore ecommerce.CategoriesService
+	UsersStore      domain.UsersService
+	ProductsStore   domain.ProductsService
+	CategoriesStore domain.CategoriesService
 	store           Store
 	*http.Server
 }

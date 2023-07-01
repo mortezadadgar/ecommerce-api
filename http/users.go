@@ -6,18 +6,22 @@ import (
 	"strconv"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/mortezadadgar/ecommerce-api"
+	"github.com/mortezadadgar/ecommerce-api/domain"
 	"github.com/mortezadadgar/ecommerce-api/postgres"
 	"golang.org/x/crypto/bcrypt"
 )
 
 func (s *Server) registerUsersRoutes(r *chi.Mux) {
+	r.Route("/auth", func(r chi.Router) {
+		// r.Get("/me", s.getMeHandler)
+		// r.Get("/login", s.loginAuthHandler)
+		r.Post("/register", s.registerAuthHandler)
+	})
+
+	// admin only
 	r.Route("/users", func(r chi.Router) {
-		r.Get("/{id}", s.getUserHandler) // admin only
-		r.Post("/", s.createUserHandler)
-		// login
-		// logout
-		// generate tokens for admins
+		// r.Get("/", s.listUsersHandler)
+		r.Get("/{id}", s.getUserHandler)
 	})
 }
 
@@ -40,14 +44,14 @@ func (s *Server) getUserHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = ToJSON(w, ecommerce.WrapUsers{User: *user}, http.StatusOK)
+	err = ToJSON(w, domain.WrapUsers{User: *user}, http.StatusOK)
 	if err != nil {
 		Error(w, r, err, http.StatusInternalServerError)
 	}
 }
 
-func (s *Server) createUserHandler(w http.ResponseWriter, r *http.Request) {
-	input := ecommerce.UsersInput{}
+func (s *Server) registerAuthHandler(w http.ResponseWriter, r *http.Request) {
+	input := domain.UsersInput{}
 	err := FromJSON(w, r, &input)
 	if err != nil {
 		Error(w, r, err, http.StatusInternalServerError)
@@ -60,13 +64,13 @@ func (s *Server) createUserHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(input.Password), 8)
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(input.Password), bcrypt.MinCost)
 	if err != nil {
 		Error(w, r, err, http.StatusInternalServerError)
 		return
 	}
 
-	user := ecommerce.Users{
+	user := domain.Users{
 		Email:    input.Email,
 		Password: hashedPassword,
 	}
@@ -83,8 +87,9 @@ func (s *Server) createUserHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = ToJSON(w, ecommerce.WrapUsers{User: user}, http.StatusCreated)
+	err = ToJSON(w, domain.WrapUsers{User: user}, http.StatusCreated)
 	if err != nil {
 		Error(w, r, err, http.StatusInternalServerError)
 	}
+
 }

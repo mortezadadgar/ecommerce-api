@@ -7,7 +7,7 @@ import (
 	"strconv"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/mortezadadgar/ecommerce-api"
+	"github.com/mortezadadgar/ecommerce-api/domain"
 	"github.com/mortezadadgar/ecommerce-api/postgres"
 )
 
@@ -27,7 +27,7 @@ func (s *Server) registerProductsRoutes(r *chi.Mux) {
 // @Tags 		 Products
 // @Produce      json
 // @Param        id             path        int  true "Product ID"
-// @Success      200            {array}     ecommerce.WrapCategories
+// @Success      200            {array}     domain.WrapCategories
 // @Failure      400            {object}    http.HTTPError
 // @Failure      500            {object}    http.HTTPError
 // @Router       /products/{id} [get]
@@ -50,7 +50,7 @@ func (s *Server) getProductHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = ToJSON(w, ecommerce.WrapProducts{Product: *product}, http.StatusOK)
+	err = ToJSON(w, domain.WrapProducts{Product: *product}, http.StatusOK)
 	if err != nil {
 		Error(w, r, err, http.StatusInternalServerError)
 	}
@@ -63,7 +63,7 @@ func (s *Server) getProductHandler(w http.ResponseWriter, r *http.Request) {
 // @Param        name         query       string  false "List by name"
 // @Param        category     query       string  false "List by category"
 // @Param        sort         query       string  false "Sort by a column"
-// @Success      200          {array}     ecommerce.WrapCategories
+// @Success      200          {array}     domain.WrapCategories
 // @Failure      400          {object}    http.HTTPError
 // @Failure      500          {object}    http.HTTPError
 // @Router       /products/   [get]
@@ -82,7 +82,7 @@ func (s *Server) listProductsHandler(w http.ResponseWriter, r *http.Request) {
 
 	fmt.Println(limit, offset)
 
-	filter := ecommerce.ProductsFilter{
+	filter := domain.ProductsFilter{
 		Name:     r.URL.Query().Get("name"),
 		Sort:     r.URL.Query().Get("sort"),
 		Category: r.URL.Query().Get("category"),
@@ -102,7 +102,7 @@ func (s *Server) listProductsHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = ToJSON(w, ecommerce.WrapProductsList{Products: *products}, http.StatusOK)
+	err = ToJSON(w, domain.WrapProductsList{Products: *products}, http.StatusOK)
 	if err != nil {
 		Error(w, r, err, http.StatusInternalServerError)
 	}
@@ -112,20 +112,20 @@ func (s *Server) listProductsHandler(w http.ResponseWriter, r *http.Request) {
 // @Tags 		 Products
 // @Produce      json
 // @Accept       json
-// @Param        product      body         ecommerce.ProductsInput true "Update product"
-// @Success      200          {array}     ecommerce.WrapProducts
+// @Param        product      body         domain.ProductsInput true "Update product"
+// @Success      200          {array}     domain.WrapProducts
 // @Failure      400          {object}    http.HTTPError
 // @Failure      500          {object}    http.HTTPError
 // @Router       /products/   [post]
 func (s *Server) createProductHandler(w http.ResponseWriter, r *http.Request) {
-	input := ecommerce.ProductsInput{}
+	input := domain.ProductsInput{}
 	err := FromJSON(w, r, &input)
 	if err != nil {
 		Error(w, r, err, http.StatusInternalServerError)
 		return
 	}
 
-	product := ecommerce.Products{}
+	product := domain.Products{}
 
 	input.SetValuesTo(&product)
 
@@ -148,7 +148,7 @@ func (s *Server) createProductHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Location", fmt.Sprintf("/products/%d", product.ID))
-	err = ToJSON(w, ecommerce.WrapProducts{Product: product}, http.StatusCreated)
+	err = ToJSON(w, domain.WrapProducts{Product: product}, http.StatusCreated)
 	if err != nil {
 		Error(w, r, err, http.StatusInternalServerError)
 	}
@@ -158,8 +158,8 @@ func (s *Server) createProductHandler(w http.ResponseWriter, r *http.Request) {
 // @Tags 		 Products
 // @Produce      json
 // @Accept       json
-// @Param        product     body         ecommerce.CategoriesInput true "Update products"
-// @Success      200          {array}     ecommerce.WrapProducts
+// @Param        product     body         domain.CategoriesInput true "Update products"
+// @Success      200          {array}     domain.WrapProducts
 // @Failure      400          {object}    http.HTTPError
 // @Failure      413          {object}    http.HTTPError
 // @Failure      500          {object}    http.HTTPError
@@ -171,7 +171,7 @@ func (s *Server) updateProductHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	input := ecommerce.ProductsInput{}
+	input := domain.ProductsInput{}
 	err = FromJSON(w, r, &input)
 	if err != nil {
 		Error(w, r, err, http.StatusInternalServerError)
@@ -210,7 +210,7 @@ func (s *Server) updateProductHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = ToJSON(w, ecommerce.WrapProducts{Product: *product}, http.StatusOK)
+	err = ToJSON(w, domain.WrapProducts{Product: *product}, http.StatusOK)
 	if err != nil {
 		Error(w, r, err, http.StatusInternalServerError)
 	}
@@ -219,7 +219,7 @@ func (s *Server) updateProductHandler(w http.ResponseWriter, r *http.Request) {
 // @Summary      Delete product
 // @Tags 		 Products
 // @Param        id           path        int  true "Product ID"
-// @Success      200          {array}     ecommerce.WrapCategories
+// @Success      200          {array}     domain.WrapCategories
 // @Failure      400          {object}    http.HTTPError
 // @Failure      500          {object}    http.HTTPError
 // @Router       /products/{id} [delete]

@@ -1,10 +1,7 @@
 package main
 
 // TODO:
-//     - LIMIT and OFFSET and SORT DONE
-//     - updates and delete products and categories DONE
 //     - users registration and login
-//     - swagger
 //     - authentications (and only allow admin to make changes)
 //     - mongodb
 //     - cart (add, list, empty, total prices)

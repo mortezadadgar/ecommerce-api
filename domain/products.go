@@ -1,4 +1,4 @@
-package ecommerce
+package domain
 
 import (
 	"context"
@@ -87,8 +87,4 @@ func (p *ProductsInput) SetValuesTo(product *Products) {
 	if p.Quantity != nil {
 		product.Quantity = *p.Quantity
 	}
-}
-
-func (p *ProductsFilter) Validate() error {
-	return nil
 }

@@ -1,4 +1,4 @@
-package ecommerce
+package domain
 
 import (
 	"context"

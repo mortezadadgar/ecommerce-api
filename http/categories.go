@@ -6,7 +6,7 @@ import (
 	"strconv"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/mortezadadgar/ecommerce-api"
+	"github.com/mortezadadgar/ecommerce-api/domain"
 	"github.com/mortezadadgar/ecommerce-api/postgres"
 )
 
@@ -24,7 +24,7 @@ func (s *Server) registerCategoriesRoutes(r *chi.Mux) {
 // @Tags 		 Categories
 // @Produce      json
 // @Param        id    path     int  true "Category ID"
-// @Success      200  {array}   ecommerce.WrapCategories
+// @Success      200  {array}   domain.WrapCategories
 // @Failure      400  {object}  http.HTTPError
 // @Failure      500  {object}  http.HTTPError
 // @Router       /categories/{id} [get]
@@ -47,7 +47,7 @@ func (s *Server) getCategoryHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = ToJSON(w, ecommerce.WrapCategories{Category: *category}, http.StatusOK)
+	err = ToJSON(w, domain.WrapCategories{Category: *category}, http.StatusOK)
 	if err != nil {
 		Error(w, r, err, http.StatusInternalServerError)
 	}
@@ -56,7 +56,7 @@ func (s *Server) getCategoryHandler(w http.ResponseWriter, r *http.Request) {
 // @Summary      List categories
 // @Tags 		 Categories
 // @Produce      json
-// @Success      200  {array}   ecommerce.WrapCategoriesList
+// @Success      200  {array}   domain.WrapCategoriesList
 // @Failure      400  {object}  http.HTTPError
 // @Failure      500  {object}  http.HTTPError
 // @Router       /categories/   [get]
@@ -73,7 +73,7 @@ func (s *Server) listCategoriesHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	filter := ecommerce.CategoriesFilter{
+	filter := domain.CategoriesFilter{
 		Name:   r.URL.Query().Get("name"),
 		Sort:   r.URL.Query().Get("sort"),
 		Limit:  limit,
@@ -92,7 +92,7 @@ func (s *Server) listCategoriesHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = ToJSON(w, ecommerce.WrapCategoriesList{Categories: *categories}, http.StatusOK)
+	err = ToJSON(w, domain.WrapCategoriesList{Categories: *categories}, http.StatusOK)
 	if err != nil {
 		Error(w, r, err, http.StatusInternalServerError)
 	}
@@ -102,14 +102,14 @@ func (s *Server) listCategoriesHandler(w http.ResponseWriter, r *http.Request) {
 // @Tags 		 Categories
 // @Produce      json
 // @Accept       json
-// @Param        category     body        ecommerce.CategoriesInput true "Create category"
-// @Success      200          {array}     ecommerce.WrapCategories
+// @Param        category     body        domain.CategoriesInput true "Create category"
+// @Success      200          {array}     domain.WrapCategories
 // @Failure      400          {object}    http.HTTPError
 // @Failure      413          {object}    http.HTTPError
 // @Failure      500          {object}    http.HTTPError
 // @Router       /categories/ [post]
 func (s *Server) createCategoryHandler(w http.ResponseWriter, r *http.Request) {
-	input := ecommerce.CategoriesInput{}
+	input := domain.CategoriesInput{}
 
 	err := FromJSON(w, r, &input)
 	if err != nil {
@@ -117,7 +117,7 @@ func (s *Server) createCategoryHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	category := ecommerce.Categories{}
+	category := domain.Categories{}
 	input.SetValuesTo(&category)
 
 	err = category.Validate()
@@ -138,7 +138,7 @@ func (s *Server) createCategoryHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = ToJSON(w, ecommerce.WrapCategories{Category: category}, http.StatusCreated)
+	err = ToJSON(w, domain.WrapCategories{Category: category}, http.StatusCreated)
 	if err != nil {
 		Error(w, r, err, http.StatusInternalServerError)
 	}
@@ -148,8 +148,8 @@ func (s *Server) createCategoryHandler(w http.ResponseWriter, r *http.Request) {
 // @Tags 		 Categories
 // @Produce      json
 // @Accept       json
-// @Param        category     body        ecommerce.CategoriesInput true "Update category"
-// @Success      200          {array}     ecommerce.WrapCategories
+// @Param        category     body        domain.CategoriesInput true "Update category"
+// @Success      200          {array}     domain.WrapCategories
 // @Failure      400          {object}    http.HTTPError
 // @Failure      413          {object}    http.HTTPError
 // @Failure      500          {object}    http.HTTPError
@@ -173,7 +173,7 @@ func (s *Server) updateCategoryHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	input := ecommerce.CategoriesInput{}
+	input := domain.CategoriesInput{}
 	err = FromJSON(w, r, &input)
 	if err != nil {
 		Error(w, r, err, http.StatusInternalServerError)
@@ -200,7 +200,7 @@ func (s *Server) updateCategoryHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = ToJSON(w, ecommerce.WrapCategories{Category: *category}, http.StatusOK)
+	err = ToJSON(w, domain.WrapCategories{Category: *category}, http.StatusOK)
 	if err != nil {
 		Error(w, r, err, http.StatusInternalServerError)
 	}
@@ -209,7 +209,7 @@ func (s *Server) updateCategoryHandler(w http.ResponseWriter, r *http.Request) {
 // @Summary      Delete category
 // @Tags 		 Categories
 // @Param        id           path        int  true "Category ID"
-// @Success      200          {array}     ecommerce.WrapCategories
+// @Success      200          {array}     domain.WrapCategories
 // @Failure      400          {object}    http.HTTPError
 // @Failure      500          {object}    http.HTTPError
 // @Router       /categories/{id} [delete]

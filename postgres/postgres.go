@@ -8,17 +8,18 @@ import (
 	"time"
 
 	// postgres driver.
-
 	"github.com/jackc/pgx/v5/pgxpool"
 	_ "github.com/jackc/pgx/v5/stdlib"
 )
 
+// can be moved to a unified package for store.
 var ErrBeginTransaction = errors.New("failed to begin transaction")
 var ErrInvalidColumn = errors.New("requested data field could not be found")
 var ErrCommitTransaction = errors.New("failed to commit transaction")
 var ErrDuplicatedEntries = errors.New("duplicated entries are not allowed")
 var ErrUnableDeleteEntry = errors.New("unable to remove the entry")
 var ErrForeinKeyViolation = errors.New("product category must matches a category entry")
+var ErrNoRows = errors.New("no rows in results set")
 
 type postgres struct {
 	DB *pgxpool.Pool
