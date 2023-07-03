@@ -13,14 +13,17 @@ import (
 	"github.com/mortezadadgar/ecommerce-api/domain"
 )
 
+// ProductsStore represents products database.
 type ProductsStore struct {
 	db *pgxpool.Pool
 }
 
+// NewProductsStore returns a new instance of ProductsStore.
 func NewProductsStore(db *pgxpool.Pool) *ProductsStore {
 	return &ProductsStore{db: db}
 }
 
+// Create creates a new product in store.
 func (p *ProductsStore) Create(ctx context.Context, product *domain.Products) error {
 	tx, err := p.db.Begin(ctx)
 	if err != nil {
@@ -69,6 +72,7 @@ func (p *ProductsStore) Create(ctx context.Context, product *domain.Products) er
 	return nil
 }
 
+// GetByID get product by id from store.
 func (p *ProductsStore) GetByID(ctx context.Context, id int) (*domain.Products, error) {
 	tx, err := p.db.Begin(ctx)
 	if err != nil {
@@ -107,6 +111,7 @@ func (p *ProductsStore) GetByID(ctx context.Context, id int) (*domain.Products, 
 	return &product, nil
 }
 
+// List lists products with optional filter.
 func (p *ProductsStore) List(ctx context.Context, filter domain.ProductsFilter) (*[]domain.Products, error) {
 	tx, err := p.db.Begin(ctx)
 	if err != nil {
@@ -150,6 +155,8 @@ func (p *ProductsStore) List(ctx context.Context, filter domain.ProductsFilter) 
 
 	return &products, nil
 }
+
+// Update updates a product by id in store.
 func (p *ProductsStore) Update(ctx context.Context, product *domain.Products) error {
 	tx, err := p.db.Begin(ctx)
 	if err != nil {
@@ -196,6 +203,7 @@ func (p *ProductsStore) Update(ctx context.Context, product *domain.Products) er
 	return nil
 }
 
+// Delete deletes a product by id from store.
 func (p *ProductsStore) Delete(ctx context.Context, id int) error {
 	tx, err := p.db.Begin(ctx)
 	if err != nil {
@@ -217,8 +225,7 @@ func (p *ProductsStore) Delete(ctx context.Context, id int) error {
 		return fmt.Errorf("failed to delete from products: %v", err)
 	}
 
-	rows := result.RowsAffected()
-	if rows != 1 {
+	if rows := result.RowsAffected(); rows != 1 {
 		return fmt.Errorf("expected to affect 1 rows, affected: %d", rows)
 	}
 

@@ -6,15 +6,17 @@ import (
 	"net/http"
 )
 
+// revive:disable
 type HTTPError struct {
 	Message string `json:"message"`
 	Code    int    `json:"code"`
 }
 
 type wrapError struct {
-	Error any `json:"error"`
+	Error HTTPError `json:"error"`
 }
 
+// Error prints errors to users as json and log server errors to stdout.
 func Error(w http.ResponseWriter, r *http.Request, message error, code int) {
 	err := HTTPError{
 		Message: message.Error(),

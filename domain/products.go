@@ -2,20 +2,22 @@ package domain
 
 import (
 	"context"
-	"net/http"
 	"time"
 
 	"github.com/go-playground/validator/v10"
 )
 
+// WrapProducts wraps products for user representation.
 type WrapProducts struct {
 	Product Products `json:"product"`
 }
 
+// WrapProductsList wraps list of list products for user representation.
 type WrapProductsList struct {
 	Products []Products `json:"products"`
 }
 
+// Products represents products model.
 type Products struct {
 	ID          int       `json:"id"`
 	Name        string    `json:"name"`
@@ -27,6 +29,7 @@ type Products struct {
 	UpdatedAt   time.Time `json:"-" db:"updated_at"`
 }
 
+// ProductsCreate represents products model for POST requests.
 type ProductsCreate struct {
 	Name        string `json:"name" validate:"required"`
 	Description string `json:"description" validate:"required"`
@@ -35,6 +38,7 @@ type ProductsCreate struct {
 	Quantity    int    `json:"quantity" validate:"required"`
 }
 
+// ProductsUpdate represents products model for PATCH requests.
 type ProductsUpdate struct {
 	Name        *string `json:"name" validate:"omitempty,required"`
 	Description *string `json:"description" validate:"omitempty,required"`
@@ -43,6 +47,7 @@ type ProductsUpdate struct {
 	Quantity    *int    `json:"quantity" validate:"omitempty,required"`
 }
 
+// ProductsFilter represents filters passed to /products requests.
 type ProductsFilter struct {
 	Category string `json:"category"`
 	Name     string `json:"name"`
@@ -52,6 +57,7 @@ type ProductsFilter struct {
 	Sort   string `json:"sort"`
 }
 
+// ProductsService represents a service for managing products.
 type ProductsService interface {
 	Create(ctx context.Context, product *Products) error
 	GetByID(ctx context.Context, id int) (*Products, error)
@@ -61,7 +67,7 @@ type ProductsService interface {
 }
 
 // Validate validates create products.
-func (p ProductsCreate) Validate(r *http.Request) error {
+func (p ProductsCreate) Validate() error {
 	v := validator.New()
 	return v.Struct(p)
 }
@@ -78,7 +84,7 @@ func (p ProductsCreate) CreateModel() Products {
 }
 
 // Validate validates update products.
-func (p ProductsUpdate) Validate(r *http.Request) error {
+func (p ProductsUpdate) Validate() error {
 	v := validator.New()
 	return v.Struct(p)
 }

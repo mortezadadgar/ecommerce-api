@@ -1,12 +1,5 @@
+// Package main ties all application dependencies and execute it.
 package main
-
-// TODO:
-//     - users registration and login
-//     - authentications (and only allow admin to make changes)
-//     - mongodb
-//     - cart (add, list, empty, total prices)
-//     - order
-//     - ...
 
 import (
 	"log"
@@ -43,7 +36,7 @@ func main() {
 	// wait for user signal
 	<-sig
 
-	err = close(server, pg)
+	err = closeMain(server, pg)
 	if err != nil {
 		log.Println("failed to close program, exiting now...")
 		os.Exit(1)
@@ -56,7 +49,7 @@ func registerSignalNotify() chan os.Signal {
 	return sig
 }
 
-func close(server *http.Server, store http.Store) error {
+func closeMain(server *http.Server, store http.Store) error {
 	err := server.Close()
 	if err != nil {
 		return err

@@ -13,14 +13,17 @@ import (
 	"github.com/mortezadadgar/ecommerce-api/domain"
 )
 
+// UsersStore represents users database.
 type UsersStore struct {
 	db *pgxpool.Pool
 }
 
+// NewUsersStore returns a new instance of UsersStore.
 func NewUsersStore(db *pgxpool.Pool) *UsersStore {
 	return &UsersStore{db: db}
 }
 
+// Create creates a new user in store.
 func (u *UsersStore) Create(ctx context.Context, user *domain.Users) error {
 	tx, err := u.db.Begin(ctx)
 	if err != nil {
@@ -62,6 +65,7 @@ func (u *UsersStore) Create(ctx context.Context, user *domain.Users) error {
 	return nil
 }
 
+// GetByID get user by id from store.
 func (u *UsersStore) GetByID(ctx context.Context, id int) (*domain.Users, error) {
 	tx, err := u.db.Begin(ctx)
 	if err != nil {

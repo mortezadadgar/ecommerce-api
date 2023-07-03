@@ -14,16 +14,14 @@ import (
 func (s *Server) registerUsersRoutes(r *chi.Mux) {
 	// authentication
 	r.Route("/auth", func(r chi.Router) {
-		// r.Get("/me", s.getMeHandler)
 		// r.Get("/login", s.loginAuthHandler)
-		r.Post("/register", s.registerAuthHandler)
 	})
 
 	// admin only
 	r.Route("/users", func(r chi.Router) {
 		r.Get("/{id}", s.getUserHandler)
+		r.Post("/", s.createUserHandler)
 		// r.Get("/", s.listUsersHandler)
-		// r.Put("/{id}", s.createUserHandler)
 		// r.Patch("/{id}", s.updateUserHandler)
 		// r.Delete("/{id}", s.deleteUserHandler)
 	})
@@ -54,7 +52,7 @@ func (s *Server) getUserHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (s *Server) registerAuthHandler(w http.ResponseWriter, r *http.Request) {
+func (s *Server) createUserHandler(w http.ResponseWriter, r *http.Request) {
 	input := domain.UsersCreate{}
 	err := FromJSON(w, r, &input)
 	if err != nil {
@@ -62,7 +60,7 @@ func (s *Server) registerAuthHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = input.Validate(r)
+	err = input.Validate()
 	if err != nil {
 		Error(w, r, err, http.StatusBadRequest)
 		return
@@ -92,5 +90,4 @@ func (s *Server) registerAuthHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		Error(w, r, err, http.StatusInternalServerError)
 	}
-
 }

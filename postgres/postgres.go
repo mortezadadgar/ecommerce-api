@@ -1,3 +1,4 @@
+// Package postgres handles all requests down to database.
 package postgres
 
 import (
@@ -9,10 +10,9 @@ import (
 
 	// postgres driver.
 	"github.com/jackc/pgx/v5/pgxpool"
-	_ "github.com/jackc/pgx/v5/stdlib"
 )
 
-// can be moved to a unified package for store.
+//revive:disable Ogh who is going to document these.
 var ErrBeginTransaction = errors.New("failed to begin transaction")
 var ErrInvalidColumn = errors.New("requested data field could not be found")
 var ErrCommitTransaction = errors.New("failed to commit transaction")
@@ -21,18 +21,18 @@ var ErrUnableDeleteEntry = errors.New("unable to remove the entry")
 var ErrForeinKeyViolation = errors.New("product category must matches a category entry")
 var ErrNoRows = errors.New("no rows in results set")
 
-type postgres struct {
+type Postgres struct {
 	DB *pgxpool.Pool
 }
 
 // New returns a new instance of postgres and connect as well.
-func New() (*postgres, error) {
+func New() (*Postgres, error) {
 	db, err := connect()
 	if err != nil {
 		return nil, err
 	}
 
-	return &postgres{
+	return &Postgres{
 		DB: db,
 	}, nil
 }
@@ -55,13 +55,13 @@ func connect() (*pgxpool.Pool, error) {
 }
 
 // Close closes postgres connection.
-func (p postgres) Close() error {
+func (p Postgres) Close() error {
 	p.DB.Close()
 	return nil
 }
 
 // Ping test postgres connection.
-func (p postgres) Ping(ctx context.Context) error {
+func (p Postgres) Ping(ctx context.Context) error {
 	return p.DB.Ping(ctx)
 }
 

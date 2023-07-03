@@ -117,7 +117,7 @@ func (s *Server) createCategoryHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = input.Validate(r)
+	err = input.Validate()
 	if err != nil {
 		Error(w, r, err, http.StatusBadRequest)
 		return
@@ -167,7 +167,7 @@ func (s *Server) updateCategoryHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = input.Validate(r)
+	err = input.Validate()
 	if err != nil {
 		Error(w, r, err, http.StatusBadRequest)
 		return

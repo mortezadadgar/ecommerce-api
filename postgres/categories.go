@@ -13,10 +13,12 @@ import (
 	"github.com/mortezadadgar/ecommerce-api/domain"
 )
 
+// CategoriesStore represents categories database.
 type CategoriesStore struct {
 	db *pgxpool.Pool
 }
 
+// NewCategoriesStore returns a new instance of CategoriesStore.
 func NewCategoriesStore(db *pgxpool.Pool) *CategoriesStore {
 	return &CategoriesStore{db: db}
 }
@@ -64,7 +66,7 @@ func (c *CategoriesStore) Create(ctx context.Context, category *domain.Categorie
 	return nil
 }
 
-// GetByID gets category by id from store.
+// GetByID get category by id from store.
 func (c *CategoriesStore) GetByID(ctx context.Context, id int) (*domain.Categories, error) {
 	tx, err := c.db.Begin(ctx)
 	if err != nil {

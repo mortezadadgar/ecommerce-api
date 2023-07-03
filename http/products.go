@@ -123,7 +123,7 @@ func (s *Server) createProductHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = input.Validate(r)
+	err = input.Validate()
 	if err != nil {
 		Error(w, r, err, http.StatusBadRequest)
 		return
@@ -174,7 +174,7 @@ func (s *Server) updateProductHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = input.Validate(r)
+	err = input.Validate()
 	if err != nil {
 		Error(w, r, err, http.StatusBadRequest)
 		return

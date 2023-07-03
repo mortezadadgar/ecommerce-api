@@ -4,6 +4,7 @@
 //  @BasePath	    /
 //  @schemes        http
 
+// Package http handles HTTP requests.
 package http
 
 import (
@@ -22,10 +23,13 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/mortezadadgar/ecommerce-api/domain"
+
+	// http-swagger
 	_ "github.com/swaggo/http-swagger/example/go-chi/docs"
 	httpSwagger "github.com/swaggo/http-swagger/v2"
 )
 
+// Server represents an HTTP server.
 type Server struct {
 	UsersStore      domain.UsersService
 	ProductsStore   domain.ProductsService
@@ -34,6 +38,7 @@ type Server struct {
 	*http.Server
 }
 
+//revive:disable
 var ErrNotFound = errors.New("the requested resource could not be found")
 var ErrMaxBytes = errors.New("exceeded maximum of 1M request body size")
 var ErrInvalidQuery = errors.New("invalid url query")
