@@ -24,7 +24,7 @@ func NewProductsStore(db *pgxpool.Pool) *ProductsStore {
 func (p *ProductsStore) Create(ctx context.Context, product *domain.Products) error {
 	tx, err := p.db.Begin(ctx)
 	if err != nil {
-		return ErrBeginTransaction
+		return fmt.Errorf("%v: %v", ErrBeginTransaction, err)
 	}
 	defer tx.Rollback(ctx)
 
@@ -63,7 +63,7 @@ func (p *ProductsStore) Create(ctx context.Context, product *domain.Products) er
 
 	err = tx.Commit(ctx)
 	if err != nil {
-		return ErrCommitTransaction
+		return fmt.Errorf("%v: %v", ErrCommitTransaction, err)
 	}
 
 	return nil
@@ -72,7 +72,7 @@ func (p *ProductsStore) Create(ctx context.Context, product *domain.Products) er
 func (p *ProductsStore) GetByID(ctx context.Context, id int) (*domain.Products, error) {
 	tx, err := p.db.Begin(ctx)
 	if err != nil {
-		return nil, ErrBeginTransaction
+		return nil, fmt.Errorf("%v: %v", ErrBeginTransaction, err)
 	}
 	defer tx.Rollback(ctx)
 
@@ -101,7 +101,7 @@ func (p *ProductsStore) GetByID(ctx context.Context, id int) (*domain.Products, 
 
 	err = tx.Commit(ctx)
 	if err != nil {
-		return nil, ErrCommitTransaction
+		return nil, fmt.Errorf("%v: %v", ErrCommitTransaction, err)
 	}
 
 	return &product, nil
@@ -110,7 +110,7 @@ func (p *ProductsStore) GetByID(ctx context.Context, id int) (*domain.Products, 
 func (p *ProductsStore) List(ctx context.Context, filter domain.ProductsFilter) (*[]domain.Products, error) {
 	tx, err := p.db.Begin(ctx)
 	if err != nil {
-		return nil, ErrBeginTransaction
+		return nil, fmt.Errorf("%v: %v", ErrBeginTransaction, err)
 	}
 	defer tx.Rollback(ctx)
 
@@ -145,7 +145,7 @@ func (p *ProductsStore) List(ctx context.Context, filter domain.ProductsFilter) 
 
 	err = tx.Commit(ctx)
 	if err != nil {
-		return nil, ErrCommitTransaction
+		return nil, fmt.Errorf("%v: %v", ErrCommitTransaction, err)
 	}
 
 	return &products, nil
@@ -153,7 +153,7 @@ func (p *ProductsStore) List(ctx context.Context, filter domain.ProductsFilter) 
 func (p *ProductsStore) Update(ctx context.Context, product *domain.Products) error {
 	tx, err := p.db.Begin(ctx)
 	if err != nil {
-		return ErrBeginTransaction
+		return fmt.Errorf("%v: %v", ErrBeginTransaction, err)
 	}
 	defer tx.Rollback(ctx)
 
@@ -190,7 +190,7 @@ func (p *ProductsStore) Update(ctx context.Context, product *domain.Products) er
 
 	err = tx.Commit(ctx)
 	if err != nil {
-		return ErrCommitTransaction
+		return fmt.Errorf("%v: %v", ErrCommitTransaction, err)
 	}
 
 	return nil
@@ -199,7 +199,7 @@ func (p *ProductsStore) Update(ctx context.Context, product *domain.Products) er
 func (p *ProductsStore) Delete(ctx context.Context, id int) error {
 	tx, err := p.db.Begin(ctx)
 	if err != nil {
-		return ErrBeginTransaction
+		return fmt.Errorf("%v: %v", ErrBeginTransaction, err)
 	}
 	defer tx.Rollback(ctx)
 
@@ -224,7 +224,7 @@ func (p *ProductsStore) Delete(ctx context.Context, id int) error {
 
 	err = tx.Commit(ctx)
 	if err != nil {
-		return ErrCommitTransaction
+		return fmt.Errorf("%v: %v", ErrCommitTransaction, err)
 	}
 
 	return nil

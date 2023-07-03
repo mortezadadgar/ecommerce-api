@@ -24,7 +24,7 @@ func NewUsersStore(db *pgxpool.Pool) *UsersStore {
 func (u *UsersStore) Create(ctx context.Context, user *domain.Users) error {
 	tx, err := u.db.Begin(ctx)
 	if err != nil {
-		return ErrBeginTransaction
+		return fmt.Errorf("%v: %v", ErrBeginTransaction, err)
 	}
 	defer tx.Rollback(ctx)
 
@@ -56,7 +56,7 @@ func (u *UsersStore) Create(ctx context.Context, user *domain.Users) error {
 
 	err = tx.Commit(ctx)
 	if err != nil {
-		return ErrCommitTransaction
+		return fmt.Errorf("%v: %v", ErrCommitTransaction, err)
 	}
 
 	return nil
@@ -65,7 +65,7 @@ func (u *UsersStore) Create(ctx context.Context, user *domain.Users) error {
 func (u *UsersStore) GetByID(ctx context.Context, id int) (*domain.Users, error) {
 	tx, err := u.db.Begin(ctx)
 	if err != nil {
-		return nil, ErrBeginTransaction
+		return nil, fmt.Errorf("%v: %v", ErrBeginTransaction, err)
 	}
 	defer tx.Rollback(ctx)
 
@@ -95,7 +95,7 @@ func (u *UsersStore) GetByID(ctx context.Context, id int) (*domain.Users, error)
 
 	err = tx.Commit(ctx)
 	if err != nil {
-		return nil, ErrCommitTransaction
+		return nil, fmt.Errorf("%v: %v", ErrCommitTransaction, err)
 	}
 
 	return &user, nil
