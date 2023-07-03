@@ -100,7 +100,7 @@ func (s *Server) Start() {
 
 	log.Printf("Started listening on %s", os.Getenv("ADDRESS"))
 
-	s.Serve(l)
+	go s.Serve(l)
 }
 
 func (s *Server) Close() error {
