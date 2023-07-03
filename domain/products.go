@@ -2,8 +2,10 @@ package domain
 
 import (
 	"context"
-	"fmt"
+	"net/http"
 	"time"
+
+	"github.com/go-playground/validator/v10"
 )
 
 type WrapProducts struct {
@@ -21,16 +23,24 @@ type Products struct {
 	Category    string    `json:"category"`
 	Price       int       `json:"price"`
 	Quantity    int       `json:"quantity"`
-	CreatedAt   time.Time `json:"created_at" db:"created_at"`
-	UpdatedAt   time.Time `json:"updated_at" db:"updated_at"`
+	CreatedAt   time.Time `json:"-" db:"created_at"`
+	UpdatedAt   time.Time `json:"-" db:"updated_at"`
 }
 
-type ProductsInput struct {
-	Name        *string `json:"name"`
-	Description *string `json:"description"`
-	Category    *string `json:"category"`
-	Price       *int    `json:"price"`
-	Quantity    *int    `json:"quantity"`
+type ProductsCreate struct {
+	Name        string `json:"name" validate:"required"`
+	Description string `json:"description" validate:"required"`
+	Category    string `json:"category" validate:"required"`
+	Price       int    `json:"price" validate:"required"`
+	Quantity    int    `json:"quantity" validate:"required"`
+}
+
+type ProductsUpdate struct {
+	Name        *string `json:"name" validate:"omitempty,required"`
+	Description *string `json:"description" validate:"omitempty,required"`
+	Category    *string `json:"category" validate:"omitempty,required"`
+	Price       *int    `json:"price" validate:"omitempty,required"`
+	Quantity    *int    `json:"quantity" validate:"omitempty,required"`
 }
 
 type ProductsFilter struct {
@@ -50,24 +60,31 @@ type ProductsService interface {
 	List(ctx context.Context, filter ProductsFilter) (*[]Products, error)
 }
 
-// Validate validates products.
-func (p *Products) Validate() error {
-	switch {
-	case p.Name == "":
-		return fmt.Errorf("name is required")
-	case p.Category == "":
-		return fmt.Errorf("invalid category value")
-	case p.Price < 0:
-		return fmt.Errorf("invalid price value")
-	case p.Quantity < 0:
-		return fmt.Errorf("invalid quantity value")
-	}
-
-	return nil
+// Validate validates create products.
+func (p ProductsCreate) Validate(r *http.Request) error {
+	v := validator.New()
+	return v.Struct(p)
 }
 
-// SetValuesTo checks whether products input are not nil and set values.
-func (p *ProductsInput) SetValuesTo(product *Products) {
+// CreateModel set input values to a new struct and return a new instance.
+func (p ProductsCreate) CreateModel() Products {
+	return Products{
+		Name:        p.Name,
+		Description: p.Description,
+		Category:    p.Category,
+		Price:       p.Price,
+		Quantity:    p.Quantity,
+	}
+}
+
+// Validate validates update products.
+func (p ProductsUpdate) Validate(r *http.Request) error {
+	v := validator.New()
+	return v.Struct(p)
+}
+
+// UpdateModel checks whether products input are not nil and set values.
+func (p ProductsUpdate) UpdateModel(product *Products) {
 	if p.Name != nil {
 		product.Name = *p.Name
 	}

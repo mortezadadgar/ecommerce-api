@@ -53,6 +53,7 @@ func New(store Store) *Server {
 			ReadTimeout:  5 * time.Second,
 			WriteTimeout: 10 * time.Second,
 		},
+
 		store: store,
 	}
 

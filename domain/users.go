@@ -2,9 +2,10 @@ package domain
 
 import (
 	"context"
-	"fmt"
-	"net/mail"
+	"net/http"
 	"time"
+
+	"github.com/go-playground/validator/v10"
 )
 
 type WrapUsers struct {
@@ -12,16 +13,16 @@ type WrapUsers struct {
 }
 
 type Users struct {
-	ID        int       `json:"-"`
+	ID        int       `json:"id"`
 	Email     string    `json:"email"`
 	Password  []byte    `json:"-" db:"-"`
-	CreatedAt time.Time `json:"created_at" db:"created_at"`
-	UpdatedAt time.Time `json:"updated_at" db:"updated_at"`
+	CreatedAt time.Time `json:"-" db:"created_at"`
+	UpdatedAt time.Time `json:"-" db:"updated_at"`
 }
 
-type UsersInput struct {
-	Email    string `json:"email"`
-	Password string `json:"password"`
+type UsersCreate struct {
+	Email    string `json:"email" validate:"required,email,lte=500"`
+	Password string `json:"password" validate:"required,gte=8,lte=72"`
 }
 
 type UsersService interface {
@@ -29,25 +30,16 @@ type UsersService interface {
 	GetByID(ctx context.Context, user int) (*Users, error)
 }
 
-// TODO: maybe use a library?
-func (u *UsersInput) Validate() error {
-	switch {
-	case len(u.Password) < 8:
-		return fmt.Errorf("password must be at least 8 bytes long")
-	case len(u.Password) > 72:
-		return fmt.Errorf("password must not be more than 72 bytes long")
-	case u.Email == "":
-		return fmt.Errorf("email must be provided")
-	case len(u.Email) >= 500:
-		return fmt.Errorf("email must not be more than 500 bytes long")
-	case !u.isEmailValid():
-		return fmt.Errorf("invalid email address")
-	}
-
-	return nil
+// Validate validates create users.
+func (u UsersCreate) Validate(r *http.Request) error {
+	v := validator.New()
+	return v.Struct(u)
 }
 
-func (u *UsersInput) isEmailValid() bool {
-	_, err := mail.ParseAddress(u.Email)
-	return err == nil
+// CreateModel set input values and password to a new struct and return a new instance.
+func (u UsersCreate) CreateModel(password []byte) Users {
+	return Users{
+		Email:    u.Email,
+		Password: password,
+	}
 }

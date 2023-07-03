@@ -80,8 +80,6 @@ func (s *Server) listProductsHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fmt.Println(limit, offset)
-
 	filter := domain.ProductsFilter{
 		Name:     r.URL.Query().Get("name"),
 		Sort:     r.URL.Query().Get("sort"),
@@ -112,28 +110,26 @@ func (s *Server) listProductsHandler(w http.ResponseWriter, r *http.Request) {
 // @Tags 		 Products
 // @Produce      json
 // @Accept       json
-// @Param        product      body         domain.ProductsInput true "Update product"
+// @Param        product      body        domain.ProductsCreate true "Create product"
 // @Success      200          {array}     domain.WrapProducts
 // @Failure      400          {object}    http.HTTPError
 // @Failure      500          {object}    http.HTTPError
 // @Router       /products/   [post]
 func (s *Server) createProductHandler(w http.ResponseWriter, r *http.Request) {
-	input := domain.ProductsInput{}
+	input := domain.ProductsCreate{}
 	err := FromJSON(w, r, &input)
 	if err != nil {
 		Error(w, r, err, http.StatusInternalServerError)
 		return
 	}
 
-	product := domain.Products{}
-
-	input.SetValuesTo(&product)
-
-	err = product.Validate()
+	err = input.Validate(r)
 	if err != nil {
 		Error(w, r, err, http.StatusBadRequest)
 		return
 	}
+
+	product := input.CreateModel()
 
 	err = s.ProductsStore.Create(r.Context(), &product)
 	if err != nil {
@@ -158,7 +154,7 @@ func (s *Server) createProductHandler(w http.ResponseWriter, r *http.Request) {
 // @Tags 		 Products
 // @Produce      json
 // @Accept       json
-// @Param        product     body         domain.CategoriesInput true "Update products"
+// @Param        product      body        domain.ProductsUpdate true "Update products"
 // @Success      200          {array}     domain.WrapProducts
 // @Failure      400          {object}    http.HTTPError
 // @Failure      413          {object}    http.HTTPError
@@ -171,10 +167,16 @@ func (s *Server) updateProductHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	input := domain.ProductsInput{}
+	input := domain.ProductsUpdate{}
 	err = FromJSON(w, r, &input)
 	if err != nil {
 		Error(w, r, err, http.StatusInternalServerError)
+		return
+	}
+
+	err = input.Validate(r)
+	if err != nil {
+		Error(w, r, err, http.StatusBadRequest)
 		return
 	}
 
@@ -190,13 +192,7 @@ func (s *Server) updateProductHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	input.SetValuesTo(product)
-
-	err = product.Validate()
-	if err != nil {
-		Error(w, r, err, http.StatusBadRequest)
-		return
-	}
+	input.UpdateModel(product)
 
 	err = s.ProductsStore.Update(r.Context(), product)
 	if err != nil {

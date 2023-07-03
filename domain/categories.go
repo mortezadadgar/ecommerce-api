@@ -2,8 +2,10 @@ package domain
 
 import (
 	"context"
-	"fmt"
+	"net/http"
 	"time"
+
+	"github.com/go-playground/validator/v10"
 )
 
 type WrapCategories struct {
@@ -18,13 +20,18 @@ type Categories struct {
 	ID          int       `json:"id"`
 	Name        string    `json:"name"`
 	Description string    `json:"description"`
-	CreatedAt   time.Time `json:"created_at" db:"created_at"`
-	UpdatedAt   time.Time `json:"updated_at" db:"updated_at"`
+	CreatedAt   time.Time `json:"-" db:"created_at"`
+	UpdatedAt   time.Time `json:"-" db:"updated_at"`
 }
 
-type CategoriesInput struct {
-	Name        *string `json:"name"`
-	Description *string `json:"description"`
+type CategoriesCreate struct {
+	Name        string `json:"name" validate:"required"`
+	Description string `json:"description" validate:"required"`
+}
+
+type CategoriesUpdate struct {
+	Name        *string `json:"name" validate:"omitempty,required"`
+	Description *string `json:"description" validate:"omitempty,required"`
 }
 
 type CategoriesFilter struct {
@@ -44,27 +51,32 @@ type CategoriesService interface {
 }
 
 // Validate validates catergories.
-func (p *Categories) Validate() error {
-	switch {
-	case p.Name == "":
-		return fmt.Errorf("name is required")
-	case p.Description == "":
-		return fmt.Errorf("description is required")
-	}
-	return nil
+func (c CategoriesCreate) Validate(r *http.Request) error {
+	v := validator.New()
+	return v.Struct(c)
 }
 
-// SetValuesTo checks whether input are not nil and set values.
-func (p *CategoriesInput) SetValuesTo(category *Categories) {
-	if p.Name != nil {
-		category.Name = *p.Name
-	}
-
-	if p.Description != nil {
-		category.Description = *p.Description
+// CreateModel set input values to a new struct and return a new instance.
+func (p CategoriesCreate) CreateModel() Categories {
+	return Categories{
+		Name:        p.Name,
+		Description: p.Description,
 	}
 }
 
-func (p *CategoriesFilter) Validate() error {
-	return nil
+// Validate validates catergories.
+func (c CategoriesUpdate) Validate(r *http.Request) error {
+	v := validator.New()
+	return v.Struct(c)
+}
+
+// UpdateModel checks whether input are not nil and set values.
+func (c CategoriesUpdate) UpdateModel(category *Categories) {
+	if c.Name != nil {
+		category.Name = *c.Name
+	}
+
+	if c.Description != nil {
+		category.Description = *c.Description
+	}
 }

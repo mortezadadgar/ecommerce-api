@@ -102,14 +102,14 @@ func (s *Server) listCategoriesHandler(w http.ResponseWriter, r *http.Request) {
 // @Tags 		 Categories
 // @Produce      json
 // @Accept       json
-// @Param        category     body        domain.CategoriesInput true "Create category"
+// @Param        category     body        domain.CategoriesCreate true "Create category"
 // @Success      200          {array}     domain.WrapCategories
 // @Failure      400          {object}    http.HTTPError
 // @Failure      413          {object}    http.HTTPError
 // @Failure      500          {object}    http.HTTPError
 // @Router       /categories/ [post]
 func (s *Server) createCategoryHandler(w http.ResponseWriter, r *http.Request) {
-	input := domain.CategoriesInput{}
+	input := domain.CategoriesCreate{}
 
 	err := FromJSON(w, r, &input)
 	if err != nil {
@@ -117,14 +117,13 @@ func (s *Server) createCategoryHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	category := domain.Categories{}
-	input.SetValuesTo(&category)
-
-	err = category.Validate()
+	err = input.Validate(r)
 	if err != nil {
 		Error(w, r, err, http.StatusBadRequest)
 		return
 	}
+
+	category := input.CreateModel()
 
 	err = s.CategoriesStore.Create(r.Context(), &category)
 	if err != nil {
@@ -148,7 +147,7 @@ func (s *Server) createCategoryHandler(w http.ResponseWriter, r *http.Request) {
 // @Tags 		 Categories
 // @Produce      json
 // @Accept       json
-// @Param        category     body        domain.CategoriesInput true "Update category"
+// @Param        category     body        domain.CategoriesUpdate true "Update category"
 // @Success      200          {array}     domain.WrapCategories
 // @Failure      400          {object}    http.HTTPError
 // @Failure      413          {object}    http.HTTPError
@@ -158,6 +157,19 @@ func (s *Server) updateCategoryHandler(w http.ResponseWriter, r *http.Request) {
 	ID, err := strconv.Atoi(chi.URLParam(r, "id"))
 	if err != nil {
 		Error(w, r, ErrInvalidQuery, http.StatusBadRequest)
+		return
+	}
+
+	input := domain.CategoriesUpdate{}
+	err = FromJSON(w, r, &input)
+	if err != nil {
+		Error(w, r, err, http.StatusInternalServerError)
+		return
+	}
+
+	err = input.Validate(r)
+	if err != nil {
+		Error(w, r, err, http.StatusBadRequest)
 		return
 	}
 
@@ -173,20 +185,7 @@ func (s *Server) updateCategoryHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	input := domain.CategoriesInput{}
-	err = FromJSON(w, r, &input)
-	if err != nil {
-		Error(w, r, err, http.StatusInternalServerError)
-		return
-	}
-
-	input.SetValuesTo(category)
-
-	err = category.Validate()
-	if err != nil {
-		Error(w, r, err, http.StatusBadRequest)
-		return
-	}
+	input.UpdateModel(category)
 
 	err = s.CategoriesStore.Update(r.Context(), category)
 	if err != nil {

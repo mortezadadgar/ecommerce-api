@@ -12,6 +12,7 @@ import (
 )
 
 func (s *Server) registerUsersRoutes(r *chi.Mux) {
+	// authentication
 	r.Route("/auth", func(r chi.Router) {
 		// r.Get("/me", s.getMeHandler)
 		// r.Get("/login", s.loginAuthHandler)
@@ -20,8 +21,11 @@ func (s *Server) registerUsersRoutes(r *chi.Mux) {
 
 	// admin only
 	r.Route("/users", func(r chi.Router) {
-		// r.Get("/", s.listUsersHandler)
 		r.Get("/{id}", s.getUserHandler)
+		// r.Get("/", s.listUsersHandler)
+		// r.Put("/{id}", s.createUserHandler)
+		// r.Patch("/{id}", s.updateUserHandler)
+		// r.Delete("/{id}", s.deleteUserHandler)
 	})
 }
 
@@ -51,14 +55,14 @@ func (s *Server) getUserHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) registerAuthHandler(w http.ResponseWriter, r *http.Request) {
-	input := domain.UsersInput{}
+	input := domain.UsersCreate{}
 	err := FromJSON(w, r, &input)
 	if err != nil {
 		Error(w, r, err, http.StatusInternalServerError)
 		return
 	}
 
-	err = input.Validate()
+	err = input.Validate(r)
 	if err != nil {
 		Error(w, r, err, http.StatusBadRequest)
 		return
@@ -70,10 +74,7 @@ func (s *Server) registerAuthHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user := domain.Users{
-		Email:    input.Email,
-		Password: hashedPassword,
-	}
+	user := input.CreateModel(hashedPassword)
 
 	err = s.UsersStore.Create(r.Context(), &user)
 	if err != nil {
