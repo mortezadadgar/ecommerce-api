@@ -31,10 +31,8 @@ func main() {
 
 	server.Start()
 
-	sig := registerSignalNotify()
-
 	// wait for user signal
-	<-sig
+	<-registerSignalNotify()
 
 	err = closeMain(server, pg)
 	if err != nil {
@@ -43,7 +41,7 @@ func main() {
 	}
 }
 
-func registerSignalNotify() chan os.Signal {
+func registerSignalNotify() <-chan os.Signal {
 	sig := make(chan os.Signal, 1)
 	signal.Notify(sig, syscall.SIGINT, syscall.SIGTERM)
 	return sig
