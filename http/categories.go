@@ -48,7 +48,7 @@ func (s *Server) getCategoryHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = ToJSON(w, domain.WrapCategories{Category: *category}, http.StatusOK)
+	err = ToJSON(w, domain.WrapCategories{Category: category}, http.StatusOK)
 	if err != nil {
 		Error(w, r, err, http.StatusInternalServerError)
 	}
@@ -93,7 +93,7 @@ func (s *Server) listCategoriesHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = ToJSON(w, domain.WrapCategoriesList{Categories: *categories}, http.StatusOK)
+	err = ToJSON(w, domain.WrapCategoriesList{Categories: categories}, http.StatusOK)
 	if err != nil {
 		Error(w, r, err, http.StatusInternalServerError)
 	}
@@ -187,9 +187,9 @@ func (s *Server) updateCategoryHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	input.UpdateModel(category)
+	input.UpdateModel(&category)
 
-	err = s.CategoriesStore.Update(r.Context(), category)
+	err = s.CategoriesStore.Update(r.Context(), &category)
 	if err != nil {
 		switch err {
 		case postgres.ErrForeinKeyViolation, postgres.ErrDuplicatedEntries:
@@ -201,7 +201,7 @@ func (s *Server) updateCategoryHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = ToJSON(w, domain.WrapCategories{Category: *category}, http.StatusOK)
+	err = ToJSON(w, domain.WrapCategories{Category: category}, http.StatusOK)
 	if err != nil {
 		Error(w, r, err, http.StatusInternalServerError)
 	}

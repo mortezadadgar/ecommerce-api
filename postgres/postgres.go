@@ -26,13 +26,13 @@ type Postgres struct {
 }
 
 // New returns a new instance of postgres and connect as well.
-func New() (*Postgres, error) {
+func New() (Postgres, error) {
 	db, err := connect()
 	if err != nil {
-		return nil, err
+		return Postgres{}, err
 	}
 
-	return &Postgres{
+	return Postgres{
 		DB: db,
 	}, nil
 }

@@ -48,10 +48,10 @@ type UsersFilter struct {
 // UsersService represents a service for managing users.
 type UsersService interface {
 	Create(ctx context.Context, user *Users) error
-	GetByID(ctx context.Context, ID int) (*Users, error)
-	GetByEmail(ctx context.Context, email string) (*Users, error)
+	GetByID(ctx context.Context, ID int) (Users, error)
+	GetByEmail(ctx context.Context, email string) (Users, error)
 	Delete(ctx context.Context, ID int) error
-	List(ctx context.Context, filter UsersFilter) (*[]Users, error)
+	List(ctx context.Context, filter UsersFilter) ([]Users, error)
 }
 
 // Validate validates create users.

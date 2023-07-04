@@ -50,7 +50,7 @@ func (s *Server) getProductHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = ToJSON(w, domain.WrapProducts{Product: *product}, http.StatusOK)
+	err = ToJSON(w, domain.WrapProducts{Product: product}, http.StatusOK)
 	if err != nil {
 		Error(w, r, err, http.StatusInternalServerError)
 	}
@@ -100,7 +100,7 @@ func (s *Server) listProductsHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = ToJSON(w, domain.WrapProductsList{Products: *products}, http.StatusOK)
+	err = ToJSON(w, domain.WrapProductsList{Products: products}, http.StatusOK)
 	if err != nil {
 		Error(w, r, err, http.StatusInternalServerError)
 	}
@@ -192,9 +192,9 @@ func (s *Server) updateProductHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	input.UpdateModel(product)
+	input.UpdateModel(&product)
 
-	err = s.ProductsStore.Update(r.Context(), product)
+	err = s.ProductsStore.Update(r.Context(), &product)
 	if err != nil {
 		switch err {
 		case postgres.ErrForeinKeyViolation, postgres.ErrDuplicatedEntries:
@@ -206,7 +206,7 @@ func (s *Server) updateProductHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = ToJSON(w, domain.WrapProducts{Product: *product}, http.StatusOK)
+	err = ToJSON(w, domain.WrapProducts{Product: product}, http.StatusOK)
 	if err != nil {
 		Error(w, r, err, http.StatusInternalServerError)
 	}

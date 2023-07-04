@@ -47,7 +47,7 @@ func (s *Server) getUserHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = ToJSON(w, domain.WrapUsers{User: *user}, http.StatusOK)
+	err = ToJSON(w, domain.WrapUsers{User: user}, http.StatusOK)
 	if err != nil {
 		Error(w, r, err, http.StatusInternalServerError)
 	}
@@ -84,7 +84,7 @@ func (s *Server) listUsersHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = ToJSON(w, domain.WrapUsersList{Users: *users}, http.StatusOK)
+	err = ToJSON(w, domain.WrapUsersList{Users: users}, http.StatusOK)
 	if err != nil {
 		Error(w, r, err, http.StatusInternalServerError)
 	}

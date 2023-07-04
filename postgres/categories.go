@@ -19,12 +19,12 @@ type CategoriesStore struct {
 }
 
 // NewCategoriesStore returns a new instance of CategoriesStore.
-func NewCategoriesStore(db *pgxpool.Pool) *CategoriesStore {
-	return &CategoriesStore{db: db}
+func NewCategoriesStore(db *pgxpool.Pool) CategoriesStore {
+	return CategoriesStore{db: db}
 }
 
 // Create creates a new category in store.
-func (c *CategoriesStore) Create(ctx context.Context, category *domain.Categories) error {
+func (c CategoriesStore) Create(ctx context.Context, category *domain.Categories) error {
 	tx, err := c.db.Begin(ctx)
 	if err != nil {
 		return fmt.Errorf("%v: %v", ErrBeginTransaction, err)
@@ -67,10 +67,10 @@ func (c *CategoriesStore) Create(ctx context.Context, category *domain.Categorie
 }
 
 // GetByID get category by id from store.
-func (c *CategoriesStore) GetByID(ctx context.Context, id int) (*domain.Categories, error) {
+func (c CategoriesStore) GetByID(ctx context.Context, id int) (domain.Categories, error) {
 	tx, err := c.db.Begin(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("%v: %v", ErrBeginTransaction, err)
+		return domain.Categories{}, fmt.Errorf("%v: %v", ErrBeginTransaction, err)
 	}
 	defer tx.Rollback(ctx)
 
@@ -85,29 +85,29 @@ func (c *CategoriesStore) GetByID(ctx context.Context, id int) (*domain.Categori
 
 	rows, err := tx.Query(ctx, query, args)
 	if err != nil {
-		return nil, err
+		return domain.Categories{}, err
 	}
 	defer rows.Close()
 
 	category, err := pgx.CollectOneRow(rows, pgx.RowToStructByName[domain.Categories])
 	switch {
 	case category.ID == 0:
-		return nil, sql.ErrNoRows
+		return domain.Categories{}, sql.ErrNoRows
 	case err != nil:
-		return nil, fmt.Errorf("failed to get category: %v", err)
+		return domain.Categories{}, fmt.Errorf("failed to get category: %v", err)
 	}
 
 	err = tx.Commit(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("%v: %v", ErrCommitTransaction, err)
+		return domain.Categories{}, fmt.Errorf("%v: %v", ErrCommitTransaction, err)
 	}
 
-	return &category, nil
+	return category, nil
 
 }
 
 // List lists categories with optional filter.
-func (c *CategoriesStore) List(ctx context.Context, filter domain.CategoriesFilter) (*[]domain.Categories, error) {
+func (c CategoriesStore) List(ctx context.Context, filter domain.CategoriesFilter) ([]domain.Categories, error) {
 	tx, err := c.db.Begin(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("%v: %v", ErrBeginTransaction, err)
@@ -147,11 +147,11 @@ func (c *CategoriesStore) List(ctx context.Context, filter domain.CategoriesFilt
 		return nil, fmt.Errorf("%v: %v", ErrCommitTransaction, err)
 	}
 
-	return &categories, nil
+	return categories, nil
 }
 
 // Update updates a category by id in store.
-func (c *CategoriesStore) Update(ctx context.Context, category *domain.Categories) error {
+func (c CategoriesStore) Update(ctx context.Context, category *domain.Categories) error {
 	tx, err := c.db.Begin(ctx)
 	if err != nil {
 		return fmt.Errorf("%v: %v", ErrBeginTransaction, err)
@@ -195,7 +195,7 @@ func (c *CategoriesStore) Update(ctx context.Context, category *domain.Categorie
 }
 
 // Delete deletes a category by id from store.
-func (c *CategoriesStore) Delete(ctx context.Context, id int) error {
+func (c CategoriesStore) Delete(ctx context.Context, id int) error {
 	tx, err := c.db.Begin(ctx)
 	if err != nil {
 		return fmt.Errorf("%v: %v", ErrBeginTransaction, err)

@@ -51,10 +51,10 @@ type CategoriesFilter struct {
 // CategoriesService represents a service for managing categories.
 type CategoriesService interface {
 	Create(ctx context.Context, category *Categories) error
-	GetByID(ctx context.Context, id int) (*Categories, error)
+	GetByID(ctx context.Context, id int) (Categories, error)
 	Update(ctx context.Context, category *Categories) error
 	Delete(ctx context.Context, ID int) error
-	List(ctx context.Context, filter CategoriesFilter) (*[]Categories, error)
+	List(ctx context.Context, filter CategoriesFilter) ([]Categories, error)
 }
 
 // Validate validates catergories.

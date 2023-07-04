@@ -19,12 +19,12 @@ type ProductsStore struct {
 }
 
 // NewProductsStore returns a new instance of ProductsStore.
-func NewProductsStore(db *pgxpool.Pool) *ProductsStore {
-	return &ProductsStore{db: db}
+func NewProductsStore(db *pgxpool.Pool) ProductsStore {
+	return ProductsStore{db: db}
 }
 
 // Create creates a new product in store.
-func (p *ProductsStore) Create(ctx context.Context, product *domain.Products) error {
+func (p ProductsStore) Create(ctx context.Context, product *domain.Products) error {
 	tx, err := p.db.Begin(ctx)
 	if err != nil {
 		return fmt.Errorf("%v: %v", ErrBeginTransaction, err)
@@ -73,10 +73,10 @@ func (p *ProductsStore) Create(ctx context.Context, product *domain.Products) er
 }
 
 // GetByID get product by id from store.
-func (p *ProductsStore) GetByID(ctx context.Context, id int) (*domain.Products, error) {
+func (p ProductsStore) GetByID(ctx context.Context, id int) (domain.Products, error) {
 	tx, err := p.db.Begin(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("%v: %v", ErrBeginTransaction, err)
+		return domain.Products{}, fmt.Errorf("%v: %v", ErrBeginTransaction, err)
 	}
 	defer tx.Rollback(ctx)
 
@@ -91,28 +91,28 @@ func (p *ProductsStore) GetByID(ctx context.Context, id int) (*domain.Products, 
 
 	rows, err := tx.Query(ctx, query, args)
 	if err != nil {
-		return nil, err
+		return domain.Products{}, err
 	}
 	defer rows.Close()
 
 	product, err := pgx.CollectOneRow(rows, pgx.RowToStructByName[domain.Products])
 	switch {
 	case product.ID == 0:
-		return nil, sql.ErrNoRows
+		return domain.Products{}, sql.ErrNoRows
 	case err != nil:
-		return nil, fmt.Errorf("failed to get product: %v", err)
+		return domain.Products{}, fmt.Errorf("failed to get product: %v", err)
 	}
 
 	err = tx.Commit(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("%v: %v", ErrCommitTransaction, err)
+		return domain.Products{}, fmt.Errorf("%v: %v", ErrCommitTransaction, err)
 	}
 
-	return &product, nil
+	return product, nil
 }
 
 // List lists products with optional filter.
-func (p *ProductsStore) List(ctx context.Context, filter domain.ProductsFilter) (*[]domain.Products, error) {
+func (p ProductsStore) List(ctx context.Context, filter domain.ProductsFilter) ([]domain.Products, error) {
 	tx, err := p.db.Begin(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("%v: %v", ErrBeginTransaction, err)
@@ -153,11 +153,11 @@ func (p *ProductsStore) List(ctx context.Context, filter domain.ProductsFilter) 
 		return nil, fmt.Errorf("%v: %v", ErrCommitTransaction, err)
 	}
 
-	return &products, nil
+	return products, nil
 }
 
 // Update updates a product by id in store.
-func (p *ProductsStore) Update(ctx context.Context, product *domain.Products) error {
+func (p ProductsStore) Update(ctx context.Context, product *domain.Products) error {
 	tx, err := p.db.Begin(ctx)
 	if err != nil {
 		return fmt.Errorf("%v: %v", ErrBeginTransaction, err)
@@ -204,7 +204,7 @@ func (p *ProductsStore) Update(ctx context.Context, product *domain.Products) er
 }
 
 // Delete deletes a product by id from store.
-func (p *ProductsStore) Delete(ctx context.Context, id int) error {
+func (p ProductsStore) Delete(ctx context.Context, id int) error {
 	tx, err := p.db.Begin(ctx)
 	if err != nil {
 		return fmt.Errorf("%v: %v", ErrBeginTransaction, err)

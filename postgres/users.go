@@ -19,12 +19,12 @@ type UsersStore struct {
 }
 
 // NewUsersStore returns a new instance of UsersStore.
-func NewUsersStore(db *pgxpool.Pool) *UsersStore {
-	return &UsersStore{db: db}
+func NewUsersStore(db *pgxpool.Pool) UsersStore {
+	return UsersStore{db: db}
 }
 
 // Create creates a new user in store.
-func (u *UsersStore) Create(ctx context.Context, user *domain.Users) error {
+func (u UsersStore) Create(ctx context.Context, user *domain.Users) error {
 	tx, err := u.db.Begin(ctx)
 	if err != nil {
 		return fmt.Errorf("%v: %v", ErrBeginTransaction, err)
@@ -66,10 +66,10 @@ func (u *UsersStore) Create(ctx context.Context, user *domain.Users) error {
 }
 
 // GetByID get user by id from store.
-func (u *UsersStore) GetByID(ctx context.Context, id int) (*domain.Users, error) {
+func (u UsersStore) GetByID(ctx context.Context, id int) (domain.Users, error) {
 	tx, err := u.db.Begin(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("%v: %v", ErrBeginTransaction, err)
+		return domain.Users{}, fmt.Errorf("%v: %v", ErrBeginTransaction, err)
 	}
 	defer tx.Rollback(ctx)
 
@@ -84,7 +84,7 @@ func (u *UsersStore) GetByID(ctx context.Context, id int) (*domain.Users, error)
 
 	rows, err := tx.Query(ctx, query, args)
 	if err != nil {
-		return nil, err
+		return domain.Users{}, err
 	}
 	defer rows.Close()
 
@@ -92,29 +92,29 @@ func (u *UsersStore) GetByID(ctx context.Context, id int) (*domain.Users, error)
 	switch {
 	// serial type starts from 1
 	case user.ID == 0:
-		return nil, sql.ErrNoRows
+		return domain.Users{}, sql.ErrNoRows
 	case err != nil:
-		return nil, fmt.Errorf("failed to query user: %v", err)
+		return domain.Users{}, fmt.Errorf("failed to query user: %v", err)
 	}
 
 	err = tx.Commit(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("%v: %v", ErrCommitTransaction, err)
+		return domain.Users{}, fmt.Errorf("%v: %v", ErrCommitTransaction, err)
 	}
 
-	return &user, nil
+	return user, nil
 }
 
 // GetByEmail get user by email from store.
-func (u *UsersStore) GetByEmail(ctx context.Context, email string) (*domain.Users, error) {
+func (u UsersStore) GetByEmail(ctx context.Context, email string) (domain.Users, error) {
 	tx, err := u.db.Begin(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("%v: %v", ErrBeginTransaction, err)
+		return domain.Users{}, fmt.Errorf("%v: %v", ErrBeginTransaction, err)
 	}
 	defer tx.Rollback(ctx)
 
 	query := `
-	SELECT id, email FROM users
+	SELECT id, email  FROM users
 	WHERE email = @email
 	`
 
@@ -124,7 +124,7 @@ func (u *UsersStore) GetByEmail(ctx context.Context, email string) (*domain.User
 
 	rows, err := tx.Query(ctx, query, args)
 	if err != nil {
-		return nil, err
+		return domain.Users{}, err
 	}
 	defer rows.Close()
 
@@ -132,21 +132,21 @@ func (u *UsersStore) GetByEmail(ctx context.Context, email string) (*domain.User
 	switch {
 	// serial type starts from 1
 	case user.ID == 0:
-		return nil, sql.ErrNoRows
+		return domain.Users{}, sql.ErrNoRows
 	case err != nil:
-		return nil, fmt.Errorf("failed to query user: %v", err)
+		return domain.Users{}, fmt.Errorf("failed to query user: %v", err)
 	}
 
 	err = tx.Commit(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("%v: %v", ErrCommitTransaction, err)
+		return domain.Users{}, fmt.Errorf("%v: %v", ErrCommitTransaction, err)
 	}
 
-	return &user, nil
+	return user, nil
 }
 
 // List lists users with optional filter.
-func (u *UsersStore) List(ctx context.Context, filter domain.UsersFilter) (*[]domain.Users, error) {
+func (u UsersStore) List(ctx context.Context, filter domain.UsersFilter) ([]domain.Users, error) {
 	tx, err := u.db.Begin(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("%v: %v", ErrBeginTransaction, err)
@@ -185,11 +185,11 @@ func (u *UsersStore) List(ctx context.Context, filter domain.UsersFilter) (*[]do
 		return nil, fmt.Errorf("%v: %v", ErrCommitTransaction, err)
 	}
 
-	return &users, nil
+	return users, nil
 }
 
 // Delete deletes a user by id from store.
-func (u *UsersStore) Delete(ctx context.Context, id int) error {
+func (u UsersStore) Delete(ctx context.Context, id int) error {
 	tx, err := u.db.Begin(ctx)
 	if err != nil {
 		return fmt.Errorf("%v: %v", ErrBeginTransaction, err)

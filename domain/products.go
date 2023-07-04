@@ -60,10 +60,10 @@ type ProductsFilter struct {
 // ProductsService represents a service for managing products.
 type ProductsService interface {
 	Create(ctx context.Context, product *Products) error
-	GetByID(ctx context.Context, id int) (*Products, error)
+	GetByID(ctx context.Context, id int) (Products, error)
 	Update(ctx context.Context, product *Products) error
 	Delete(ctx context.Context, ID int) error
-	List(ctx context.Context, filter ProductsFilter) (*[]Products, error)
+	List(ctx context.Context, filter ProductsFilter) ([]Products, error)
 }
 
 // Validate validates create products.
