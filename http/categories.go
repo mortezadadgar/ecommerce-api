@@ -2,6 +2,7 @@ package http
 
 import (
 	"database/sql"
+	"fmt"
 	"net/http"
 	"strconv"
 
@@ -137,6 +138,7 @@ func (s *Server) createCategoryHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	w.Header().Set("Location", fmt.Sprintf("/products/%d", category.ID))
 	err = ToJSON(w, domain.WrapCategories{Category: category}, http.StatusCreated)
 	if err != nil {
 		Error(w, r, err, http.StatusInternalServerError)

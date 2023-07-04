@@ -12,7 +12,7 @@ type WrapProducts struct {
 	Product Products `json:"product"`
 }
 
-// WrapProductsList wraps list of list products for user representation.
+// WrapProductsList wraps list of products for user representation.
 type WrapProductsList struct {
 	Products []Products `json:"products"`
 }
