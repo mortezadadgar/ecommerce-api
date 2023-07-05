@@ -27,6 +27,7 @@ func (s *Server) registerCategoriesRoutes(r *chi.Mux) {
 // @Param        id    path     int  true "Category ID"
 // @Success      200  {array}   domain.WrapCategories
 // @Failure      400  {object}  http.HTTPError
+// @Failure      404  {object}  http.HTTPError
 // @Failure      500  {object}  http.HTTPError
 // @Router       /categories/{id} [get]
 func (s *Server) getCategoryHandler(w http.ResponseWriter, r *http.Request) {
@@ -56,9 +57,13 @@ func (s *Server) getCategoryHandler(w http.ResponseWriter, r *http.Request) {
 
 // @Summary      List categories
 // @Tags 		 Categories
-// @Produce      json
+// @Param        limit        query       string  false "Limit results"
+// @Param        offset       query       string  false "Offset results"
+// @Param        name         query       string  false "List by name"
+// @Param        sort         query       string  false "Sort by a column"
 // @Success      200  {array}   domain.WrapCategoriesList
 // @Failure      400  {object}  http.HTTPError
+// @Failure      404  {object}  http.HTTPError
 // @Failure      500  {object}  http.HTTPError
 // @Router       /categories/   [get]
 func (s *Server) listCategoriesHandler(w http.ResponseWriter, r *http.Request) {
@@ -101,11 +106,14 @@ func (s *Server) listCategoriesHandler(w http.ResponseWriter, r *http.Request) {
 
 // @Summary      Create category
 // @Tags 		 Categories
+// @Security     Bearer
 // @Produce      json
 // @Accept       json
 // @Param        category     body        domain.CategoriesCreate true "Create category"
-// @Success      200          {array}     domain.WrapCategories
+// @Success      201          {array}     domain.WrapCategories
 // @Failure      400          {object}    http.HTTPError
+// @Failure      403          {object}    http.HTTPError
+// @Failure      404          {object}    http.HTTPError
 // @Failure      413          {object}    http.HTTPError
 // @Failure      500          {object}    http.HTTPError
 // @Router       /categories/ [post]
@@ -147,11 +155,13 @@ func (s *Server) createCategoryHandler(w http.ResponseWriter, r *http.Request) {
 
 // @Summary      Update category
 // @Tags 		 Categories
+// @Security     Bearer
 // @Produce      json
 // @Accept       json
 // @Param        category     body        domain.CategoriesUpdate true "Update category"
 // @Success      200          {array}     domain.WrapCategories
 // @Failure      400          {object}    http.HTTPError
+// @Failure      403          {object}    http.HTTPError
 // @Failure      413          {object}    http.HTTPError
 // @Failure      500          {object}    http.HTTPError
 // @Router       /categories/ [patch]
@@ -209,9 +219,12 @@ func (s *Server) updateCategoryHandler(w http.ResponseWriter, r *http.Request) {
 
 // @Summary      Delete category
 // @Tags 		 Categories
+// @Security     Bearer
 // @Param        id           path        int  true "Category ID"
 // @Success      200          {array}     domain.WrapCategories
 // @Failure      400          {object}    http.HTTPError
+// @Failure      403          {object}    http.HTTPError
+// @Failure      404          {object}    http.HTTPError
 // @Failure      500          {object}    http.HTTPError
 // @Router       /categories/{id} [delete]
 func (s *Server) deleteCategoryHandler(w http.ResponseWriter, r *http.Request) {

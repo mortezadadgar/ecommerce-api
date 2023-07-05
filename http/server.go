@@ -3,6 +3,10 @@
 //	@license.url	https://opensource.org/license/mit/
 //  @BasePath	    /
 //  @schemes        http
+//  @securityDefinitions.apikey Bearer
+//  @in header
+//  @name Authorization
+//  @description Type "Bearer" followed by a space and token.
 
 // Package http handles HTTP requests.
 package http
@@ -229,7 +233,7 @@ func (s *Server) authentication(next http.Handler) http.Handler {
 func requireAuth(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if user := userIDFromContext(r.Context()); user == 0 {
-			Error(w, r, ErrUnauthorizedAccess, http.StatusUnauthorized)
+			Error(w, r, ErrUnauthorizedAccess, http.StatusForbidden)
 			return
 		}
 

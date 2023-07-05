@@ -31,6 +31,17 @@ func (s *Server) registerUsersRoutes(r *chi.Mux) {
 	})
 }
 
+// @Summary      Get user by id
+// @Tags 		 Users
+// @Security     Bearer
+// @Produce      json
+// @Param        id             path        int  true "User ID"
+// @Success      200            {array}     domain.WrapUsers
+// @Failure      400            {object}    http.HTTPError
+// @Failure      403            {object}    http.HTTPError
+// @Failure      404            {object}    http.HTTPError
+// @Failure      500            {object}    http.HTTPError
+// @Router       /users/{id}    [get]
 func (s *Server) getUserHandler(w http.ResponseWriter, r *http.Request) {
 	ID, err := strconv.Atoi(chi.URLParam(r, "id"))
 	if err != nil {
@@ -56,6 +67,19 @@ func (s *Server) getUserHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// @Summary      List users
+// @Tags 		 Users
+// @Security     Bearer
+// @Produce      json
+// @Param        limit          query       string  false "Limit results"
+// @Param        offset         query       string  false "Offset results"
+// @Param        sort           query       string  false "Sort by a column"
+// @Success      200            {array}     domain.WrapUsersList
+// @Failure      400            {object}    http.HTTPError
+// @Failure      403            {object}    http.HTTPError
+// @Failure      404            {object}    http.HTTPError
+// @Failure      500            {object}    http.HTTPError
+// @Router       /users/        [get]
 func (s *Server) listUsersHandler(w http.ResponseWriter, r *http.Request) {
 	limit, err := ParseIntQuery(r, "limit")
 	if err != nil {
@@ -93,6 +117,18 @@ func (s *Server) listUsersHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// @Summary      Create user
+// @Tags 		 Users
+// @Security     Bearer
+// @Produce      json
+// @Accept       json
+// @Param        product      body        domain.UsersCreate true "Create Users"
+// @Success      201          {array}     domain.WrapProducts
+// @Failure      400          {object}    http.HTTPError
+// @Failure      403            {object}    http.HTTPError
+// @Failure      413          {object}    http.HTTPError
+// @Failure      500          {object}    http.HTTPError
+// @Router       /users/      [post]
 func (s *Server) createUserHandler(w http.ResponseWriter, r *http.Request) {
 	input := domain.UsersCreate{}
 	err := FromJSON(w, r, &input)
@@ -134,6 +170,16 @@ func (s *Server) createUserHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// @Summary      Delete User
+// @Tags 		 Users
+// @Security     Bearer
+// @Param        id             path        int  true "User ID"
+// @Success      200
+// @Failure      400            {object}    http.HTTPError
+// @Failure      403            {object}    http.HTTPError
+// @Failure      404            {object}    http.HTTPError
+// @Failure      500            {object}    http.HTTPError
+// @Router       /users/{id}    [delete]
 func (s *Server) deleteUserHandler(w http.ResponseWriter, r *http.Request) {
 	ID, err := strconv.Atoi(chi.URLParam(r, "id"))
 	if err != nil {
@@ -152,6 +198,17 @@ func (s *Server) deleteUserHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// @Summary      User login
+// @Tags 		 Users
+// @Produce      json
+// @Accept       json
+// @Param        product      body        domain.UsersLogin true "Create Users"
+// @Success      200          {array}     domain.WrapProducts
+// @Failure      400          {object}    http.HTTPError
+// @Failure      404          {object}    http.HTTPError
+// @Failure      413          {object}    http.HTTPError
+// @Failure      500          {object}    http.HTTPError
+// @Router       /auth/login  [post]
 func (s *Server) loginAuthHandler(w http.ResponseWriter, r *http.Request) {
 	input := domain.UsersLogin{}
 	err := FromJSON(w, r, &input)
@@ -207,7 +264,7 @@ func (s *Server) loginAuthHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = ToJSON(w, domain.WrapToken{Token: token}, http.StatusCreated)
+	err = ToJSON(w, domain.WrapToken{Token: token}, http.StatusOK)
 	if err != nil {
 		Error(w, r, err, http.StatusInternalServerError)
 	}

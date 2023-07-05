@@ -23,12 +23,13 @@ func (s *Server) registerProductsRoutes(r *chi.Mux) {
 
 }
 
-// @Summary      Get product
+// @Summary      Get product by id
 // @Tags 		 Products
 // @Produce      json
 // @Param        id             path        int  true "Product ID"
-// @Success      200            {array}     domain.WrapCategories
+// @Success      200            {array}     domain.WrapProducts
 // @Failure      400            {object}    http.HTTPError
+// @Failure      404            {object}    http.HTTPError
 // @Failure      500            {object}    http.HTTPError
 // @Router       /products/{id} [get]
 func (s *Server) getProductHandler(w http.ResponseWriter, r *http.Request) {
@@ -63,8 +64,9 @@ func (s *Server) getProductHandler(w http.ResponseWriter, r *http.Request) {
 // @Param        name         query       string  false "List by name"
 // @Param        category     query       string  false "List by category"
 // @Param        sort         query       string  false "Sort by a column"
-// @Success      200          {array}     domain.WrapCategories
+// @Success      200          {array}     domain.WrapProductsList
 // @Failure      400          {object}    http.HTTPError
+// @Failure      404          {object}    http.HTTPError
 // @Failure      500          {object}    http.HTTPError
 // @Router       /products/   [get]
 func (s *Server) listProductsHandler(w http.ResponseWriter, r *http.Request) {
@@ -108,11 +110,14 @@ func (s *Server) listProductsHandler(w http.ResponseWriter, r *http.Request) {
 
 // @Summary      Create product
 // @Tags 		 Products
+// @Security     Bearer
 // @Produce      json
 // @Accept       json
 // @Param        product      body        domain.ProductsCreate true "Create product"
-// @Success      200          {array}     domain.WrapProducts
+// @Success      201          {array}     domain.WrapProducts
 // @Failure      400          {object}    http.HTTPError
+// @Failure      403            {object}    http.HTTPError
+// @Failure      413          {object}    http.HTTPError
 // @Failure      500          {object}    http.HTTPError
 // @Router       /products/   [post]
 func (s *Server) createProductHandler(w http.ResponseWriter, r *http.Request) {
@@ -152,14 +157,16 @@ func (s *Server) createProductHandler(w http.ResponseWriter, r *http.Request) {
 
 // @Summary      Update product
 // @Tags 		 Products
+// @Security     Bearer
 // @Produce      json
 // @Accept       json
 // @Param        product      body        domain.ProductsUpdate true "Update products"
 // @Success      200          {array}     domain.WrapProducts
 // @Failure      400          {object}    http.HTTPError
+// @Failure      403            {object}    http.HTTPError
 // @Failure      413          {object}    http.HTTPError
 // @Failure      500          {object}    http.HTTPError
-// @Router       /products/ [patch]
+// @Router       /products/   [patch]
 func (s *Server) updateProductHandler(w http.ResponseWriter, r *http.Request) {
 	ID, err := strconv.Atoi(chi.URLParam(r, "id"))
 	if err != nil {
@@ -214,10 +221,13 @@ func (s *Server) updateProductHandler(w http.ResponseWriter, r *http.Request) {
 
 // @Summary      Delete product
 // @Tags 		 Products
-// @Param        id           path        int  true "Product ID"
-// @Success      200          {array}     domain.WrapCategories
-// @Failure      400          {object}    http.HTTPError
-// @Failure      500          {object}    http.HTTPError
+// @Security     Bearer
+// @Param        id             path        int  true "Product ID"
+// @Success      200
+// @Failure      400            {object}    http.HTTPError
+// @Failure      403            {object}    http.HTTPError
+// @Failure      404            {object}    http.HTTPError
+// @Failure      500            {object}    http.HTTPError
 // @Router       /products/{id} [delete]
 func (s *Server) deleteProductHandler(w http.ResponseWriter, r *http.Request) {
 	ID, err := strconv.Atoi(chi.URLParam(r, "id"))
