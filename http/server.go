@@ -224,6 +224,9 @@ func (s *Server) authentication(next http.Handler) http.Handler {
 			return
 		}
 
+		// HACK: no need for hashed password being in context.
+		user.Password = []byte("")
+
 		r = r.WithContext(newUserContext(r.Context(), user))
 
 		next.ServeHTTP(w, r)
