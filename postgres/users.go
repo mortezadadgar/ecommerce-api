@@ -11,6 +11,7 @@ import (
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/mortezadadgar/ecommerce-api/domain"
+	"github.com/mortezadadgar/ecommerce-api/store"
 )
 
 // UsersStore represents users database.
@@ -27,12 +28,13 @@ func NewUsersStore(db *pgxpool.Pool) UsersStore {
 func (u UsersStore) Create(ctx context.Context, user *domain.Users) error {
 	tx, err := u.db.Begin(ctx)
 	if err != nil {
-		return fmt.Errorf("%v: %v", ErrBeginTransaction, err)
+		return fmt.Errorf("%v: %v", store.ErrBeginTransaction, err)
 	}
 	defer tx.Rollback(ctx)
 
 	query := `
-	INSERT INTO users(email, password_hash) VALUES(@email, @password_hash)
+	INSERT INTO users(email, password_hash)
+	VALUES(@email, @password_hash)
 	RETURNING id, created_at, updated_at
 	`
 
@@ -46,7 +48,7 @@ func (u UsersStore) Create(ctx context.Context, user *domain.Users) error {
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) {
 			if pgErr.Code == pgerrcode.UniqueViolation {
-				return ErrDuplicatedEntries
+				return store.ErrDuplicatedEntries
 			}
 		}
 
@@ -55,7 +57,7 @@ func (u UsersStore) Create(ctx context.Context, user *domain.Users) error {
 
 	err = tx.Commit(ctx)
 	if err != nil {
-		return fmt.Errorf("%v: %v", ErrCommitTransaction, err)
+		return fmt.Errorf("%v: %v", store.ErrCommitTransaction, err)
 	}
 
 	return nil
@@ -63,94 +65,39 @@ func (u UsersStore) Create(ctx context.Context, user *domain.Users) error {
 
 // GetByID get user by id from store.
 func (u UsersStore) GetByID(ctx context.Context, id int) (domain.Users, error) {
-	tx, err := u.db.Begin(ctx)
-	if err != nil {
-		return domain.Users{}, fmt.Errorf("%v: %v", ErrBeginTransaction, err)
-	}
-	defer tx.Rollback(ctx)
-
-	query := `
-	SELECT id, email, password_hash FROM users
-	WHERE id = @id
-	`
-
-	args := pgx.NamedArgs{
-		"id": id,
-	}
-
-	rows, err := tx.Query(ctx, query, args)
+	user, err := u.List(ctx, domain.UsersFilter{ID: id})
 	if err != nil {
 		return domain.Users{}, err
 	}
 
-	user, err := pgx.CollectOneRow(rows, pgx.RowToStructByName[domain.Users])
-	switch {
-	case err != nil:
-		return domain.Users{}, fmt.Errorf("failed to query user: %v", err)
-	case user.ID == 0:
-		return domain.Users{}, sql.ErrNoRows
-	}
-
-	err = tx.Commit(ctx)
-	if err != nil {
-		return domain.Users{}, fmt.Errorf("%v: %v", ErrCommitTransaction, err)
-	}
-
-	return user, nil
+	return user[0], nil
 }
 
 // GetByEmail get user by email from store.
-// TODO: unify with GetByID
 func (u UsersStore) GetByEmail(ctx context.Context, email string) (domain.Users, error) {
-	tx, err := u.db.Begin(ctx)
-	if err != nil {
-		return domain.Users{}, fmt.Errorf("%v: %v", ErrBeginTransaction, err)
-	}
-	defer tx.Rollback(ctx)
-
-	query := `
-	SELECT id, email, password_hash FROM users
-	WHERE email = @email
-	`
-
-	args := pgx.NamedArgs{
-		"email": email,
-	}
-
-	rows, err := tx.Query(ctx, query, args)
+	user, err := u.List(ctx, domain.UsersFilter{Email: email})
 	if err != nil {
 		return domain.Users{}, err
 	}
 
-	user, err := pgx.CollectOneRow(rows, pgx.RowToStructByName[domain.Users])
-	switch {
-	case err != nil:
-		return domain.Users{}, fmt.Errorf("failed to query user: %v", err)
-	case user.ID == 0:
-		return domain.Users{}, sql.ErrNoRows
-	}
-
-	err = tx.Commit(ctx)
-	if err != nil {
-		return domain.Users{}, fmt.Errorf("%v: %v", ErrCommitTransaction, err)
-	}
-
-	return user, nil
+	return user[0], nil
 }
 
 // List lists users with optional filter.
 func (u UsersStore) List(ctx context.Context, filter domain.UsersFilter) ([]domain.Users, error) {
 	tx, err := u.db.Begin(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("%v: %v", ErrBeginTransaction, err)
+		return nil, fmt.Errorf("%v: %v", store.ErrBeginTransaction, err)
 	}
 	defer tx.Rollback(ctx)
 
 	query := `
 	SELECT id, email, password_hash FROM users
 	WHERE 1=1
-	` + FormatSort(filter.Sort) + `
-	` + FormatLimitOffset(filter.Limit, filter.Offset) + `
+	` + store.FormatAndOp("email", filter.Email) + `
+	` + store.FormatAndIntOp("id", filter.ID) + `
+	` + store.FormatSort(filter.Sort) + `
+	` + store.FormatLimitOffset(filter.Limit, filter.Offset) + `
 	`
 
 	rows, err := tx.Query(ctx, query)
@@ -169,7 +116,7 @@ func (u UsersStore) List(ctx context.Context, filter domain.UsersFilter) ([]doma
 
 	err = tx.Commit(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("%v: %v", ErrCommitTransaction, err)
+		return nil, fmt.Errorf("%v: %v", store.ErrCommitTransaction, err)
 	}
 
 	return users, nil
@@ -179,7 +126,7 @@ func (u UsersStore) List(ctx context.Context, filter domain.UsersFilter) ([]doma
 func (u UsersStore) Delete(ctx context.Context, id int) error {
 	tx, err := u.db.Begin(ctx)
 	if err != nil {
-		return fmt.Errorf("%v: %v", ErrBeginTransaction, err)
+		return fmt.Errorf("%v: %v", store.ErrBeginTransaction, err)
 	}
 	defer tx.Rollback(ctx)
 
@@ -203,7 +150,7 @@ func (u UsersStore) Delete(ctx context.Context, id int) error {
 
 	err = tx.Commit(ctx)
 	if err != nil {
-		return fmt.Errorf("%v: %v", ErrCommitTransaction, err)
+		return fmt.Errorf("%v: %v", store.ErrCommitTransaction, err)
 	}
 
 	return nil

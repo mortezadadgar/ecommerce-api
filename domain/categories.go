@@ -43,6 +43,7 @@ type CategoriesUpdate struct {
 
 // CategoriesFilter represents filters passed to /categories requests.
 type CategoriesFilter struct {
+	ID   int    `json:"int"`
 	Name string `json:"name"`
 	Sort string `json:"sort"`
 

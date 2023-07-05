@@ -11,6 +11,7 @@ import (
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/mortezadadgar/ecommerce-api/domain"
+	"github.com/mortezadadgar/ecommerce-api/store"
 )
 
 // TokensStore represents tokens database.
@@ -42,9 +43,9 @@ func (t TokensStore) Create(ctx context.Context, token domain.Tokens) error {
 		if errors.As(err, &pgErr) {
 			switch pgErr.Code {
 			case pgerrcode.UniqueViolation:
-				return ErrDuplicatedEntries
+				return store.ErrDuplicatedEntries
 			case pgerrcode.ForeignKeyViolation:
-				return ErrForeinKeyViolation
+				return store.ErrForeinKeyViolation
 			}
 		}
 
@@ -54,7 +55,7 @@ func (t TokensStore) Create(ctx context.Context, token domain.Tokens) error {
 	return nil
 }
 
-// GetUser get user by token and returns ErrNoRows on expired tokens.
+// GetUser get user by token and returns store.ErrNoRows on expired tokens.
 func (t TokensStore) GetUser(ctx context.Context, plainToken string) (domain.Users, error) {
 	query := `
 	SELECT id, email, password_hash FROM users

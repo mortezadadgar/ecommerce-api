@@ -10,7 +10,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/mortezadadgar/ecommerce-api/domain"
-	"github.com/mortezadadgar/ecommerce-api/postgres"
+	"github.com/mortezadadgar/ecommerce-api/store"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -102,7 +102,7 @@ func (s *Server) listUsersHandler(w http.ResponseWriter, r *http.Request) {
 	users, err := s.UsersStore.List(r.Context(), filter)
 	if err != nil {
 		switch err {
-		case sql.ErrNoRows, postgres.ErrInvalidColumn:
+		case sql.ErrNoRows, store.ErrInvalidColumn:
 			Error(w, r, ErrNotFound, http.StatusNotFound)
 		default:
 			Error(w, r, err, http.StatusInternalServerError)
@@ -154,7 +154,7 @@ func (s *Server) createUserHandler(w http.ResponseWriter, r *http.Request) {
 	err = s.UsersStore.Create(r.Context(), &user)
 	if err != nil {
 		switch err {
-		case postgres.ErrForeinKeyViolation, postgres.ErrDuplicatedEntries:
+		case store.ErrForeinKeyViolation, store.ErrDuplicatedEntries:
 			Error(w, r, err, http.StatusBadRequest)
 		default:
 			Error(w, r, err, http.StatusInternalServerError)
@@ -226,7 +226,7 @@ func (s *Server) loginAuthHandler(w http.ResponseWriter, r *http.Request) {
 	user, err := s.UsersStore.GetByEmail(r.Context(), input.Email)
 	if err != nil {
 		switch err {
-		case sql.ErrNoRows, postgres.ErrInvalidColumn:
+		case sql.ErrNoRows:
 			Error(w, r, ErrNotFound, http.StatusNotFound)
 		default:
 			Error(w, r, err, http.StatusInternalServerError)
@@ -255,7 +255,7 @@ func (s *Server) loginAuthHandler(w http.ResponseWriter, r *http.Request) {
 	err = s.TokensStore.Create(r.Context(), token)
 	if err != nil {
 		switch err {
-		case postgres.ErrForeinKeyViolation, postgres.ErrDuplicatedEntries:
+		case store.ErrForeinKeyViolation, store.ErrDuplicatedEntries:
 			Error(w, r, err, http.StatusBadRequest)
 		default:
 			Error(w, r, err, http.StatusInternalServerError)

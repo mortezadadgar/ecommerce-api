@@ -3,7 +3,6 @@ package postgres
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"os"
 	"time"
@@ -11,16 +10,6 @@ import (
 	// postgres driver.
 	"github.com/jackc/pgx/v5/pgxpool"
 )
-
-//revive:disable Ogh who is going to document these.
-var ErrBeginTransaction = errors.New("failed to begin transaction")
-var ErrInvalidColumn = errors.New("requested data field could not be found")
-var ErrCommitTransaction = errors.New("failed to commit transaction")
-var ErrDuplicatedEntries = errors.New("duplicated entries are not allowed")
-var ErrUnableDeleteEntry = errors.New("unable to remove the entry")
-var ErrForeinKeyViolation = errors.New("product category must matches a category entry")
-
-// revive:enable
 
 // Postgres represents postgres connection pool.
 type Postgres struct {
@@ -65,36 +54,4 @@ func (p Postgres) Close() error {
 // Ping test postgres connection.
 func (p Postgres) Ping(ctx context.Context) error {
 	return p.DB.Ping(ctx)
-}
-
-// FormatLimitOffset returns a SQL string for a given limit & offset.
-func FormatLimitOffset(limit int, offset int) string {
-	switch {
-	case limit > 0 && offset > 0:
-		return fmt.Sprintf(`LIMIT %d OFFSET %d`, limit, offset)
-	case limit > 0:
-		return fmt.Sprintf(`LIMIT %d`, limit)
-	case offset > 0:
-		return fmt.Sprintf(`OFFSET %d`, offset)
-	}
-
-	return ""
-}
-
-// FormatSort returns a SQL string for a giving column.
-func FormatSort(v string) string {
-	if v != "" {
-		return fmt.Sprintf("ORDER BY %s", v)
-	}
-
-	return ""
-}
-
-// FormatAndOp returns a SQL string for a giving category.
-func FormatAndOp(c string, v string) string {
-	if v != "" {
-		return fmt.Sprintf("AND %s='%s'", c, v)
-	}
-
-	return ""
 }

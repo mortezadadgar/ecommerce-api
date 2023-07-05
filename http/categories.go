@@ -8,7 +8,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/mortezadadgar/ecommerce-api/domain"
-	"github.com/mortezadadgar/ecommerce-api/postgres"
+	"github.com/mortezadadgar/ecommerce-api/store"
 )
 
 func (s *Server) registerCategoriesRoutes(r *chi.Mux) {
@@ -89,7 +89,7 @@ func (s *Server) listCategoriesHandler(w http.ResponseWriter, r *http.Request) {
 	categories, err := s.CategoriesStore.List(r.Context(), filter)
 	if err != nil {
 		switch err {
-		case sql.ErrNoRows, postgres.ErrInvalidColumn:
+		case sql.ErrNoRows, store.ErrInvalidColumn:
 			Error(w, r, ErrNotFound, http.StatusNotFound)
 		default:
 			Error(w, r, err, http.StatusInternalServerError)
@@ -137,7 +137,7 @@ func (s *Server) createCategoryHandler(w http.ResponseWriter, r *http.Request) {
 	err = s.CategoriesStore.Create(r.Context(), &category)
 	if err != nil {
 		switch err {
-		case postgres.ErrDuplicatedEntries:
+		case store.ErrDuplicatedEntries:
 			Error(w, r, err, http.StatusBadRequest)
 		default:
 			Error(w, r, err, http.StatusInternalServerError)
@@ -202,7 +202,7 @@ func (s *Server) updateCategoryHandler(w http.ResponseWriter, r *http.Request) {
 	err = s.CategoriesStore.Update(r.Context(), &category)
 	if err != nil {
 		switch err {
-		case postgres.ErrForeinKeyViolation, postgres.ErrDuplicatedEntries:
+		case store.ErrForeinKeyViolation, store.ErrDuplicatedEntries:
 			Error(w, r, err, http.StatusBadRequest)
 		default:
 			Error(w, r, err, http.StatusInternalServerError)
@@ -239,8 +239,8 @@ func (s *Server) deleteCategoryHandler(w http.ResponseWriter, r *http.Request) {
 		switch err {
 		case sql.ErrNoRows:
 			Error(w, r, ErrNotFound, http.StatusNotFound)
-		case postgres.ErrForeinKeyViolation:
-			Error(w, r, postgres.ErrUnableDeleteEntry, http.StatusBadRequest)
+		case store.ErrForeinKeyViolation:
+			Error(w, r, store.ErrUnableDeleteEntry, http.StatusBadRequest)
 		default:
 			Error(w, r, err, http.StatusInternalServerError)
 		}

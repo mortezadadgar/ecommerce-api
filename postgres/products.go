@@ -11,6 +11,7 @@ import (
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/mortezadadgar/ecommerce-api/domain"
+	"github.com/mortezadadgar/ecommerce-api/store"
 )
 
 // ProductsStore represents products database.
@@ -27,7 +28,7 @@ func NewProductsStore(db *pgxpool.Pool) ProductsStore {
 func (p ProductsStore) Create(ctx context.Context, product *domain.Products) error {
 	tx, err := p.db.Begin(ctx)
 	if err != nil {
-		return fmt.Errorf("%v: %v", ErrBeginTransaction, err)
+		return fmt.Errorf("%v: %v", store.ErrBeginTransaction, err)
 	}
 	defer tx.Rollback(ctx)
 
@@ -55,9 +56,9 @@ func (p ProductsStore) Create(ctx context.Context, product *domain.Products) err
 		if errors.As(err, &pgErr) {
 			switch pgErr.Code {
 			case pgerrcode.UniqueViolation:
-				return ErrDuplicatedEntries
+				return store.ErrDuplicatedEntries
 			case pgerrcode.ForeignKeyViolation:
-				return ErrForeinKeyViolation
+				return store.ErrForeinKeyViolation
 			}
 		}
 
@@ -66,7 +67,7 @@ func (p ProductsStore) Create(ctx context.Context, product *domain.Products) err
 
 	err = tx.Commit(ctx)
 	if err != nil {
-		return fmt.Errorf("%v: %v", ErrCommitTransaction, err)
+		return fmt.Errorf("%v: %v", store.ErrCommitTransaction, err)
 	}
 
 	return nil
@@ -74,57 +75,30 @@ func (p ProductsStore) Create(ctx context.Context, product *domain.Products) err
 
 // GetByID get product by id from store.
 func (p ProductsStore) GetByID(ctx context.Context, id int) (domain.Products, error) {
-	tx, err := p.db.Begin(ctx)
-	if err != nil {
-		return domain.Products{}, fmt.Errorf("%v: %v", ErrBeginTransaction, err)
-	}
-	defer tx.Rollback(ctx)
-
-	query := `
-	SELECT * FROM products
-	WHERE id = @id
-	`
-
-	args := pgx.NamedArgs{
-		"id": id,
-	}
-
-	rows, err := tx.Query(ctx, query, args)
+	product, err := p.List(ctx, domain.ProductsFilter{ID: id})
 	if err != nil {
 		return domain.Products{}, err
 	}
 
-	product, err := pgx.CollectOneRow(rows, pgx.RowToStructByName[domain.Products])
-	switch {
-	case err != nil:
-		return domain.Products{}, fmt.Errorf("failed to get product: %v", err)
-	case product.ID == 0:
-		return domain.Products{}, sql.ErrNoRows
-	}
-
-	err = tx.Commit(ctx)
-	if err != nil {
-		return domain.Products{}, fmt.Errorf("%v: %v", ErrCommitTransaction, err)
-	}
-
-	return product, nil
+	return product[0], nil
 }
 
 // List lists products with optional filter.
 func (p ProductsStore) List(ctx context.Context, filter domain.ProductsFilter) ([]domain.Products, error) {
 	tx, err := p.db.Begin(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("%v: %v", ErrBeginTransaction, err)
+		return nil, fmt.Errorf("%v: %v", store.ErrBeginTransaction, err)
 	}
 	defer tx.Rollback(ctx)
 
 	query := `
 	SELECT * FROM products
 	WHERE 1=1
-	` + FormatSort(filter.Sort) + `
-	` + FormatAndOp("category", filter.Category) + `
-	` + FormatAndOp("name", filter.Name) + `
-	` + FormatLimitOffset(filter.Limit, filter.Offset) + `
+	` + store.FormatSort(filter.Sort) + `
+	` + store.FormatAndOp("category", filter.Category) + `
+	` + store.FormatAndOp("name", filter.Name) + `
+	` + store.FormatAndIntOp("id", filter.ID) + `
+	` + store.FormatLimitOffset(filter.Limit, filter.Offset) + `
 	`
 
 	rows, err := tx.Query(ctx, query)
@@ -143,7 +117,7 @@ func (p ProductsStore) List(ctx context.Context, filter domain.ProductsFilter) (
 
 	err = tx.Commit(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("%v: %v", ErrCommitTransaction, err)
+		return nil, fmt.Errorf("%v: %v", store.ErrCommitTransaction, err)
 	}
 
 	return products, nil
@@ -153,7 +127,7 @@ func (p ProductsStore) List(ctx context.Context, filter domain.ProductsFilter) (
 func (p ProductsStore) Update(ctx context.Context, product *domain.Products) error {
 	tx, err := p.db.Begin(ctx)
 	if err != nil {
-		return fmt.Errorf("%v: %v", ErrBeginTransaction, err)
+		return fmt.Errorf("%v: %v", store.ErrBeginTransaction, err)
 	}
 	defer tx.Rollback(ctx)
 
@@ -179,9 +153,9 @@ func (p ProductsStore) Update(ctx context.Context, product *domain.Products) err
 		if errors.As(err, &pgErr) {
 			switch pgErr.Code {
 			case pgerrcode.UniqueViolation:
-				return ErrDuplicatedEntries
+				return store.ErrDuplicatedEntries
 			case pgerrcode.ForeignKeyViolation:
-				return ErrForeinKeyViolation
+				return store.ErrForeinKeyViolation
 			}
 		}
 
@@ -190,7 +164,7 @@ func (p ProductsStore) Update(ctx context.Context, product *domain.Products) err
 
 	err = tx.Commit(ctx)
 	if err != nil {
-		return fmt.Errorf("%v: %v", ErrCommitTransaction, err)
+		return fmt.Errorf("%v: %v", store.ErrCommitTransaction, err)
 	}
 
 	return nil
@@ -200,7 +174,7 @@ func (p ProductsStore) Update(ctx context.Context, product *domain.Products) err
 func (p ProductsStore) Delete(ctx context.Context, id int) error {
 	tx, err := p.db.Begin(ctx)
 	if err != nil {
-		return fmt.Errorf("%v: %v", ErrBeginTransaction, err)
+		return fmt.Errorf("%v: %v", store.ErrBeginTransaction, err)
 	}
 	defer tx.Rollback(ctx)
 
@@ -224,7 +198,7 @@ func (p ProductsStore) Delete(ctx context.Context, id int) error {
 
 	err = tx.Commit(ctx)
 	if err != nil {
-		return fmt.Errorf("%v: %v", ErrCommitTransaction, err)
+		return fmt.Errorf("%v: %v", store.ErrCommitTransaction, err)
 	}
 
 	return nil

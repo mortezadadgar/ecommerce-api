@@ -49,6 +49,7 @@ type ProductsUpdate struct {
 
 // ProductsFilter represents filters passed to /products requests.
 type ProductsFilter struct {
+	ID       int    `json:"id"`
 	Category string `json:"category"`
 	Name     string `json:"name"`
 

@@ -8,7 +8,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/mortezadadgar/ecommerce-api/domain"
-	"github.com/mortezadadgar/ecommerce-api/postgres"
+	"github.com/mortezadadgar/ecommerce-api/store"
 )
 
 func (s *Server) registerProductsRoutes(r *chi.Mux) {
@@ -93,7 +93,7 @@ func (s *Server) listProductsHandler(w http.ResponseWriter, r *http.Request) {
 	products, err := s.ProductsStore.List(r.Context(), filter)
 	if err != nil {
 		switch err {
-		case sql.ErrNoRows, postgres.ErrInvalidColumn:
+		case sql.ErrNoRows, store.ErrInvalidColumn:
 			Error(w, r, ErrNotFound, http.StatusNotFound)
 		default:
 			Error(w, r, err, http.StatusInternalServerError)
@@ -139,7 +139,7 @@ func (s *Server) createProductHandler(w http.ResponseWriter, r *http.Request) {
 	err = s.ProductsStore.Create(r.Context(), &product)
 	if err != nil {
 		switch err {
-		case postgres.ErrForeinKeyViolation, postgres.ErrDuplicatedEntries:
+		case store.ErrForeinKeyViolation, store.ErrDuplicatedEntries:
 			Error(w, r, err, http.StatusBadRequest)
 		default:
 			Error(w, r, err, http.StatusInternalServerError)
@@ -204,7 +204,7 @@ func (s *Server) updateProductHandler(w http.ResponseWriter, r *http.Request) {
 	err = s.ProductsStore.Update(r.Context(), &product)
 	if err != nil {
 		switch err {
-		case postgres.ErrForeinKeyViolation, postgres.ErrDuplicatedEntries:
+		case store.ErrForeinKeyViolation, store.ErrDuplicatedEntries:
 			Error(w, r, err, http.StatusBadRequest)
 		default:
 			Error(w, r, err, http.StatusInternalServerError)

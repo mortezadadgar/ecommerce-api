@@ -38,6 +38,9 @@ type UsersLogin struct {
 
 // UsersFilter represents filters passed to /users requests.
 type UsersFilter struct {
+	Email string `json:"email"`
+	ID    int    `json:"id"`
+
 	Limit  int    `json:"limit"`
 	Offset int    `json:"offset"`
 	Sort   string `json:"sort"`
