@@ -19,8 +19,10 @@ var ErrCommitTransaction = errors.New("failed to commit transaction")
 var ErrDuplicatedEntries = errors.New("duplicated entries are not allowed")
 var ErrUnableDeleteEntry = errors.New("unable to remove the entry")
 var ErrForeinKeyViolation = errors.New("product category must matches a category entry")
-var ErrNoRows = errors.New("no rows in results set")
 
+// revive:enable
+
+// Postgres represents postgres connection pool.
 type Postgres struct {
 	DB *pgxpool.Pool
 }

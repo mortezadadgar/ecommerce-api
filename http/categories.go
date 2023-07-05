@@ -15,9 +15,9 @@ func (s *Server) registerCategoriesRoutes(r *chi.Mux) {
 	r.Route("/categories", func(r chi.Router) {
 		r.Get("/{id}", s.getCategoryHandler)
 		r.Get("/", s.listCategoriesHandler)
-		r.With(RequireAuth).Post("/", s.createCategoryHandler)
-		r.With(RequireAuth).Patch("/{id}", s.updateCategoryHandler)
-		r.With(RequireAuth).Delete("/{id}", s.deleteCategoryHandler)
+		r.With(requireAuth).Post("/", s.createCategoryHandler)
+		r.With(requireAuth).Patch("/{id}", s.updateCategoryHandler)
+		r.With(requireAuth).Delete("/{id}", s.deleteCategoryHandler)
 	})
 }
 
@@ -84,7 +84,7 @@ func (s *Server) listCategoriesHandler(w http.ResponseWriter, r *http.Request) {
 	categories, err := s.CategoriesStore.List(r.Context(), filter)
 	if err != nil {
 		switch err {
-		case sql.ErrNoRows:
+		case sql.ErrNoRows, postgres.ErrInvalidColumn:
 			Error(w, r, ErrNotFound, http.StatusNotFound)
 		default:
 			Error(w, r, err, http.StatusInternalServerError)

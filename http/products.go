@@ -15,9 +15,9 @@ func (s *Server) registerProductsRoutes(r *chi.Mux) {
 	r.Route("/products", func(r chi.Router) {
 		r.Get("/{id}", s.getProductHandler)
 		r.Get("/", s.listProductsHandler)
-		r.With(RequireAuth).Post("/", s.createProductHandler)
-		r.With(RequireAuth).Patch("/{id}", s.updateProductHandler)
-		r.With(RequireAuth).Delete("/{id}", s.deleteProductHandler)
+		r.With(requireAuth).Post("/", s.createProductHandler)
+		r.With(requireAuth).Patch("/{id}", s.updateProductHandler)
+		r.With(requireAuth).Delete("/{id}", s.deleteProductHandler)
 		// bulk inserts data to db
 	})
 

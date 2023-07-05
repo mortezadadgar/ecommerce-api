@@ -12,6 +12,8 @@ type HTTPError struct {
 	Code    int    `json:"code"`
 }
 
+// revive: enable
+
 type wrapError struct {
 	Error HTTPError `json:"error"`
 }

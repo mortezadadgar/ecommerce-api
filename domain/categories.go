@@ -1,6 +1,8 @@
 // revive:disable until there is a central package.
 package domain
 
+// revive: enable
+
 import (
 	"context"
 	"time"

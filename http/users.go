@@ -14,7 +14,8 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-// revive:disable
+// ErrUnauthorizedAccess returns when user has invalid authentication token
+// or is not provided.
 var ErrUnauthorizedAccess = errors.New("unauthorized access")
 
 func (s *Server) registerUsersRoutes(r *chi.Mux) {
@@ -22,7 +23,7 @@ func (s *Server) registerUsersRoutes(r *chi.Mux) {
 		r.Post("/login", s.loginAuthHandler)
 	})
 
-	r.With(RequireAuth).Route("/users", func(r chi.Router) {
+	r.With(requireAuth).Route("/users", func(r chi.Router) {
 		r.Get("/{id}", s.getUserHandler)
 		r.Get("/", s.listUsersHandler)
 		r.Post("/", s.createUserHandler)

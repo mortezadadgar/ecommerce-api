@@ -41,13 +41,18 @@ type Server struct {
 	*http.Server
 }
 
-//revive:disable
+// ErrNotFound returned when a resource is not found.
 var ErrNotFound = errors.New("the requested resource could not be found")
+
+// ErrMaxBytes returned when the maximum request body size is reached.
 var ErrMaxBytes = errors.New("exceeded maximum of 1M request body size")
+
+// ErrInvalidQuery returned when a invalid url query is being used.
 var ErrInvalidQuery = errors.New("invalid url query")
 
 const maxBytesRead = 1_048_576
 
+// Store used for common interaction with database from server.
 type Store interface {
 	Close() error
 	Ping(ctx context.Context) error
@@ -84,9 +89,9 @@ func New(store Store) *Server {
 	r.MethodNotAllowed(s.methodNotAllowdHandler)
 
 	fs := http.FileServer(http.Dir("./swagger"))
-	r.With(RequireAuth).Handle("/swagger/swagger.json", http.StripPrefix("/swagger", fs))
+	r.With(requireAuth).Handle("/swagger/swagger.json", http.StripPrefix("/swagger", fs))
 
-	r.With(RequireAuth).Get("/docs/*", httpSwagger.Handler(
+	r.With(requireAuth).Get("/docs/*", httpSwagger.Handler(
 		httpSwagger.URL("/swagger/swagger.json"),
 		httpSwagger.UIConfig(map[string]string{
 			"defaultModelsExpandDepth": "-1",
@@ -112,6 +117,7 @@ func (s *Server) Start() {
 	go s.Serve(l)
 }
 
+// Close closes the database connection.
 func (s *Server) Close() error {
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
@@ -181,6 +187,8 @@ func ToJSON(w http.ResponseWriter, v any, code int) error {
 	return json.NewEncoder(w).Encode(v)
 }
 
+// ParseIntQuery parses integer url parameter, returns nothing when
+// parameter is not provided.
 func ParseIntQuery(r *http.Request, v string) (int, error) {
 	if !r.URL.Query().Has(v) {
 		return 0, nil
@@ -218,7 +226,7 @@ func (s *Server) authentication(next http.Handler) http.Handler {
 	})
 }
 
-func RequireAuth(next http.Handler) http.Handler {
+func requireAuth(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if user := userIDFromContext(r.Context()); user == 0 {
 			Error(w, r, ErrUnauthorizedAccess, http.StatusUnauthorized)
