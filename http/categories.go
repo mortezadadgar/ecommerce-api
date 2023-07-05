@@ -15,9 +15,9 @@ func (s *Server) registerCategoriesRoutes(r *chi.Mux) {
 	r.Route("/categories", func(r chi.Router) {
 		r.Get("/{id}", s.getCategoryHandler)
 		r.Get("/", s.listCategoriesHandler)
-		r.Post("/", s.createCategoryHandler)
-		r.Patch("/{id}", s.updateCategoryHandler)
-		r.Delete("/{id}", s.deleteCategoryHandler)
+		r.With(RequireAuth).Post("/", s.createCategoryHandler)
+		r.With(RequireAuth).Patch("/{id}", s.updateCategoryHandler)
+		r.With(RequireAuth).Delete("/{id}", s.deleteCategoryHandler)
 	})
 }
 

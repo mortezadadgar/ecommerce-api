@@ -2,9 +2,9 @@ package domain
 
 import (
 	"context"
-	"time"
 
 	"github.com/go-playground/validator/v10"
+	"golang.org/x/crypto/bcrypt"
 )
 
 // WrapUsers wraps users for user representation.
@@ -19,11 +19,9 @@ type WrapUsersList struct {
 
 // Users represents users model.
 type Users struct {
-	ID        int       `json:"id"`
-	Email     string    `json:"email"`
-	Password  []byte    `json:"-" db:"-"`
-	CreatedAt time.Time `json:"-" db:"-"`
-	UpdatedAt time.Time `json:"-" db:"-"`
+	ID       int    `json:"id"`
+	Email    string `json:"email"`
+	Password []byte `json:"-" db:"password_hash"`
 }
 
 // UsersCreate represents users model for POST requests.
@@ -72,4 +70,14 @@ func (u UsersCreate) CreateModel(password []byte) Users {
 		Email:    u.Email,
 		Password: password,
 	}
+}
+
+// GenerateHashedPassword generates hashed password.
+func GenerateHashedPassword(password []byte) ([]byte, error) {
+	return bcrypt.GenerateFromPassword(password, bcrypt.MinCost)
+}
+
+// CompareHashAndPassword compares hash and plaintext password.
+func CompareHashAndPassword(hashedPassword []byte, password []byte) error {
+	return bcrypt.CompareHashAndPassword(hashedPassword, password)
 }

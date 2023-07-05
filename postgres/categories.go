@@ -87,14 +87,13 @@ func (c CategoriesStore) GetByID(ctx context.Context, id int) (domain.Categories
 	if err != nil {
 		return domain.Categories{}, err
 	}
-	defer rows.Close()
 
 	category, err := pgx.CollectOneRow(rows, pgx.RowToStructByName[domain.Categories])
 	switch {
-	case category.ID == 0:
-		return domain.Categories{}, sql.ErrNoRows
 	case err != nil:
 		return domain.Categories{}, fmt.Errorf("failed to get category: %v", err)
+	case category.ID == 0:
+		return domain.Categories{}, sql.ErrNoRows
 	}
 
 	err = tx.Commit(ctx)
@@ -126,16 +125,10 @@ func (c CategoriesStore) List(ctx context.Context, filter domain.CategoriesFilte
 	if err != nil {
 		return nil, fmt.Errorf("failed to list categories: %v", err)
 	}
-	defer rows.Close()
 
 	categories, err := pgx.CollectRows(rows, pgx.RowToStructByName[domain.Categories])
 	if err != nil {
 		return nil, fmt.Errorf("failed to scan rows of categories: %v", err)
-	}
-
-	err = rows.Err()
-	if err != nil {
-		return nil, err
 	}
 
 	if len(categories) == 0 {

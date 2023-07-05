@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/mortezadadgar/ecommerce-api/domain"
@@ -13,14 +14,15 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
+// revive:disable
+var ErrUnauthorizedAccess = errors.New("unauthorized access")
+
 func (s *Server) registerUsersRoutes(r *chi.Mux) {
-	// authentication
 	r.Route("/auth", func(r chi.Router) {
 		r.Post("/login", s.loginAuthHandler)
 	})
 
-	// admin only
-	r.Route("/users", func(r chi.Router) {
+	r.With(RequireAuth).Route("/users", func(r chi.Router) {
 		r.Get("/{id}", s.getUserHandler)
 		r.Get("/", s.listUsersHandler)
 		r.Post("/", s.createUserHandler)
@@ -104,7 +106,7 @@ func (s *Server) createUserHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(input.Password), bcrypt.MinCost)
+	hashedPassword, err := domain.GenerateHashedPassword([]byte(input.Password))
 	if err != nil {
 		Error(w, r, err, http.StatusInternalServerError)
 		return
@@ -163,7 +165,6 @@ func (s *Server) loginAuthHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fmt.Println(input.Email)
 	user, err := s.UsersStore.GetByEmail(r.Context(), input.Email)
 	if err != nil {
 		switch err {
@@ -176,15 +177,37 @@ func (s *Server) loginAuthHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fmt.Printf("%+v\n", user)
-	err = bcrypt.CompareHashAndPassword(user.Password, []byte(input.Password))
+	err = domain.CompareHashAndPassword(user.Password, []byte(input.Password))
 	if err != nil {
 		if errors.Is(err, bcrypt.ErrMismatchedHashAndPassword) {
-			Error(w, r, err, http.StatusUnauthorized)
+			Error(w, r, ErrUnauthorizedAccess, http.StatusUnauthorized)
 		} else {
 			Error(w, r, err, http.StatusInternalServerError)
 		}
 
 		return
+	}
+
+	token, err := domain.GenerateToken(user.ID, 16, 24*3*time.Hour)
+	if err != nil {
+		Error(w, r, err, http.StatusInternalServerError)
+		return
+	}
+
+	err = s.TokensStore.Create(r.Context(), token)
+	if err != nil {
+		switch err {
+		case postgres.ErrForeinKeyViolation, postgres.ErrDuplicatedEntries:
+			Error(w, r, err, http.StatusBadRequest)
+		default:
+			Error(w, r, err, http.StatusInternalServerError)
+		}
+
+		return
+	}
+
+	err = ToJSON(w, domain.WrapToken{Token: token}, http.StatusCreated)
+	if err != nil {
+		Error(w, r, err, http.StatusInternalServerError)
 	}
 }

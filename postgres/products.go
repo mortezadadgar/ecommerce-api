@@ -93,14 +93,13 @@ func (p ProductsStore) GetByID(ctx context.Context, id int) (domain.Products, er
 	if err != nil {
 		return domain.Products{}, err
 	}
-	defer rows.Close()
 
 	product, err := pgx.CollectOneRow(rows, pgx.RowToStructByName[domain.Products])
 	switch {
-	case product.ID == 0:
-		return domain.Products{}, sql.ErrNoRows
 	case err != nil:
 		return domain.Products{}, fmt.Errorf("failed to get product: %v", err)
+	case product.ID == 0:
+		return domain.Products{}, sql.ErrNoRows
 	}
 
 	err = tx.Commit(ctx)
@@ -132,16 +131,10 @@ func (p ProductsStore) List(ctx context.Context, filter domain.ProductsFilter) (
 	if err != nil {
 		return nil, fmt.Errorf("failed to query list products: %v", err)
 	}
-	defer rows.Close()
 
 	products, err := pgx.CollectRows(rows, pgx.RowToStructByName[domain.Products])
 	if err != nil {
 		return nil, fmt.Errorf("failed to scan rows of products: %v", err)
-	}
-
-	err = rows.Err()
-	if err != nil {
-		return nil, err
 	}
 
 	if len(products) == 0 {

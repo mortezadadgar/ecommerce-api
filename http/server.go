@@ -9,6 +9,7 @@ package http
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -18,6 +19,7 @@ import (
 	"os"
 	"runtime"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -34,6 +36,7 @@ type Server struct {
 	UsersStore      domain.UsersService
 	ProductsStore   domain.ProductsService
 	CategoriesStore domain.CategoriesService
+	TokensStore     domain.TokensService
 	store           Store
 	*http.Server
 }
@@ -69,6 +72,7 @@ func New(store Store) *Server {
 	r.Use(middleware.StripSlashes)
 	r.Use(middleware.Timeout(5 * time.Second))
 	r.Use(middleware.SetHeader("Content-type", "application/json"))
+	r.Use(s.authentication)
 
 	s.registerUsersRoutes(r)
 	s.registerProductsRoutes(r)
@@ -80,9 +84,9 @@ func New(store Store) *Server {
 	r.MethodNotAllowed(s.methodNotAllowdHandler)
 
 	fs := http.FileServer(http.Dir("./swagger"))
-	r.Handle("/swagger/swagger.json", http.StripPrefix("/swagger", fs))
+	r.With(RequireAuth).Handle("/swagger/swagger.json", http.StripPrefix("/swagger", fs))
 
-	r.Get("/docs/*", httpSwagger.Handler(
+	r.With(RequireAuth).Get("/docs/*", httpSwagger.Handler(
 		httpSwagger.URL("/swagger/swagger.json"),
 		httpSwagger.UIConfig(map[string]string{
 			"defaultModelsExpandDepth": "-1",
@@ -183,4 +187,45 @@ func ParseIntQuery(r *http.Request, v string) (int, error) {
 	}
 
 	return strconv.Atoi(r.URL.Query().Get(v))
+}
+
+func (s *Server) authentication(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		auth := r.Header.Get("Authorization")
+		if len(auth) == 0 {
+			next.ServeHTTP(w, r)
+			return
+		}
+
+		plainToken := strings.TrimPrefix(auth, "Bearer ")
+		if len(plainToken) == 0 {
+			next.ServeHTTP(w, r)
+			return
+		}
+
+		user, err := s.TokensStore.GetUser(r.Context(), plainToken)
+		if err != nil {
+			if errors.Is(err, sql.ErrNoRows) {
+				Error(w, r, err, http.StatusInternalServerError)
+			}
+			next.ServeHTTP(w, r)
+			return
+		}
+
+		r = r.WithContext(newUserContext(r.Context(), user))
+
+		next.ServeHTTP(w, r)
+	})
+}
+
+func RequireAuth(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if user := userIDFromContext(r.Context()); user == 0 {
+			Error(w, r, ErrUnauthorizedAccess, http.StatusUnauthorized)
+			return
+		}
+
+		next.ServeHTTP(w, r)
+	})
+
 }

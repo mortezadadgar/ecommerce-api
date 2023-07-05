@@ -28,6 +28,7 @@ func main() {
 	server.UsersStore = postgres.NewUsersStore(pg.DB)
 	server.ProductsStore = postgres.NewProductsStore(pg.DB)
 	server.CategoriesStore = postgres.NewCategoriesStore(pg.DB)
+	server.TokensStore = postgres.NewTokensStore(pg.DB)
 
 	server.Start()
 

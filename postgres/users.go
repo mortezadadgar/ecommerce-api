@@ -41,11 +41,7 @@ func (u UsersStore) Create(ctx context.Context, user *domain.Users) error {
 		"password_hash": &user.Password,
 	}
 
-	err = tx.QueryRow(ctx, query, args).Scan(
-		&user.ID,
-		&user.CreatedAt,
-		&user.UpdatedAt,
-	)
+	err = tx.QueryRow(ctx, query, args).Scan(&user.ID)
 	if err != nil {
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) {
@@ -74,7 +70,7 @@ func (u UsersStore) GetByID(ctx context.Context, id int) (domain.Users, error) {
 	defer tx.Rollback(ctx)
 
 	query := `
-	SELECT id, email FROM users
+	SELECT id, email, password_hash FROM users
 	WHERE id = @id
 	`
 
@@ -86,15 +82,13 @@ func (u UsersStore) GetByID(ctx context.Context, id int) (domain.Users, error) {
 	if err != nil {
 		return domain.Users{}, err
 	}
-	defer rows.Close()
 
 	user, err := pgx.CollectOneRow(rows, pgx.RowToStructByName[domain.Users])
 	switch {
-	// serial type starts from 1
-	case user.ID == 0:
-		return domain.Users{}, sql.ErrNoRows
 	case err != nil:
 		return domain.Users{}, fmt.Errorf("failed to query user: %v", err)
+	case user.ID == 0:
+		return domain.Users{}, sql.ErrNoRows
 	}
 
 	err = tx.Commit(ctx)
@@ -106,6 +100,7 @@ func (u UsersStore) GetByID(ctx context.Context, id int) (domain.Users, error) {
 }
 
 // GetByEmail get user by email from store.
+// TODO: unify with GetByID
 func (u UsersStore) GetByEmail(ctx context.Context, email string) (domain.Users, error) {
 	tx, err := u.db.Begin(ctx)
 	if err != nil {
@@ -114,7 +109,7 @@ func (u UsersStore) GetByEmail(ctx context.Context, email string) (domain.Users,
 	defer tx.Rollback(ctx)
 
 	query := `
-	SELECT id, email  FROM users
+	SELECT id, email, password_hash FROM users
 	WHERE email = @email
 	`
 
@@ -126,15 +121,13 @@ func (u UsersStore) GetByEmail(ctx context.Context, email string) (domain.Users,
 	if err != nil {
 		return domain.Users{}, err
 	}
-	defer rows.Close()
 
 	user, err := pgx.CollectOneRow(rows, pgx.RowToStructByName[domain.Users])
 	switch {
-	// serial type starts from 1
-	case user.ID == 0:
-		return domain.Users{}, sql.ErrNoRows
 	case err != nil:
 		return domain.Users{}, fmt.Errorf("failed to query user: %v", err)
+	case user.ID == 0:
+		return domain.Users{}, sql.ErrNoRows
 	}
 
 	err = tx.Commit(ctx)
@@ -154,7 +147,7 @@ func (u UsersStore) List(ctx context.Context, filter domain.UsersFilter) ([]doma
 	defer tx.Rollback(ctx)
 
 	query := `
-	SELECT id, email FROM users
+	SELECT id, email, password_hash FROM users
 	WHERE 1=1
 	` + FormatSort(filter.Sort) + `
 	` + FormatLimitOffset(filter.Limit, filter.Offset) + `
@@ -164,16 +157,10 @@ func (u UsersStore) List(ctx context.Context, filter domain.UsersFilter) ([]doma
 	if err != nil {
 		return nil, fmt.Errorf("failed to query list users: %v", err)
 	}
-	defer rows.Close()
 
 	users, err := pgx.CollectRows(rows, pgx.RowToStructByName[domain.Users])
 	if err != nil {
 		return nil, fmt.Errorf("failed to scan rows of users: %v", err)
-	}
-
-	err = rows.Err()
-	if err != nil {
-		return nil, err
 	}
 
 	if len(users) == 0 {
