@@ -24,11 +24,11 @@ func (s *Server) registerCategoriesRoutes(r *chi.Mux) {
 // @Summary      Get category
 // @Tags 		 Categories
 // @Produce      json
-// @Param        id    path     int  true "Category ID"
-// @Success      200  {array}   domain.WrapCategories
-// @Failure      400  {object}  http.HTTPError
-// @Failure      404  {object}  http.HTTPError
-// @Failure      500  {object}  http.HTTPError
+// @Param        id    path       int  true "Category ID"
+// @Success      200  {array}     domain.WrapCategories
+// @Failure      400  {object}    http.HTTPError
+// @Failure      404  {object}    http.HTTPError
+// @Failure      500  {object}    http.HTTPError
 // @Router       /categories/{id} [get]
 func (s *Server) getCategoryHandler(w http.ResponseWriter, r *http.Request) {
 	ID, err := strconv.Atoi(chi.URLParam(r, "id"))
@@ -109,14 +109,14 @@ func (s *Server) listCategoriesHandler(w http.ResponseWriter, r *http.Request) {
 // @Security     Bearer
 // @Produce      json
 // @Accept       json
-// @Param        category     body        domain.CategoriesCreate true "Create category"
-// @Success      201          {array}     domain.WrapCategories
-// @Failure      400          {object}    http.HTTPError
-// @Failure      403          {object}    http.HTTPError
-// @Failure      404          {object}    http.HTTPError
-// @Failure      413          {object}    http.HTTPError
-// @Failure      500          {object}    http.HTTPError
-// @Router       /categories/ [post]
+// @Param        category         body        domain.CategoriesCreate true "Create category"
+// @Success      201              {array}     domain.WrapCategories
+// @Failure      400              {object}    http.HTTPError
+// @Failure      403              {object}    http.HTTPError
+// @Failure      404              {object}    http.HTTPError
+// @Failure      413              {object}    http.HTTPError
+// @Failure      500              {object}    http.HTTPError
+// @Router       /categories/{id} [post]
 func (s *Server) createCategoryHandler(w http.ResponseWriter, r *http.Request) {
 	input := domain.CategoriesCreate{}
 
@@ -158,13 +158,13 @@ func (s *Server) createCategoryHandler(w http.ResponseWriter, r *http.Request) {
 // @Security     Bearer
 // @Produce      json
 // @Accept       json
-// @Param        category     body        domain.CategoriesUpdate true "Update category"
-// @Success      200          {array}     domain.WrapCategories
-// @Failure      400          {object}    http.HTTPError
-// @Failure      403          {object}    http.HTTPError
-// @Failure      413          {object}    http.HTTPError
-// @Failure      500          {object}    http.HTTPError
-// @Router       /categories/ [patch]
+// @Param        category         body        domain.CategoriesUpdate true "Update category"
+// @Success      200              {array}     domain.WrapCategories
+// @Failure      400              {object}    http.HTTPError
+// @Failure      403              {object}    http.HTTPError
+// @Failure      413              {object}    http.HTTPError
+// @Failure      500              {object}    http.HTTPError
+// @Router       /categories/{id} [patch]
 func (s *Server) updateCategoryHandler(w http.ResponseWriter, r *http.Request) {
 	ID, err := strconv.Atoi(chi.URLParam(r, "id"))
 	if err != nil {

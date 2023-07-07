@@ -113,13 +113,13 @@ func (s *Server) listProductsHandler(w http.ResponseWriter, r *http.Request) {
 // @Security     Bearer
 // @Produce      json
 // @Accept       json
-// @Param        product      body        domain.ProductsCreate true "Create product"
-// @Success      201          {array}     domain.WrapProducts
-// @Failure      400          {object}    http.HTTPError
-// @Failure      403            {object}    http.HTTPError
-// @Failure      413          {object}    http.HTTPError
-// @Failure      500          {object}    http.HTTPError
-// @Router       /products/   [post]
+// @Param        product          body        domain.ProductsCreate true "Create product"
+// @Success      201              {array}     domain.WrapProducts
+// @Failure      400              {object}    http.HTTPError
+// @Failure      403              {object}    http.HTTPError
+// @Failure      413              {object}    http.HTTPError
+// @Failure      500              {object}    http.HTTPError
+// @Router       /products/{id}   [post]
 func (s *Server) createProductHandler(w http.ResponseWriter, r *http.Request) {
 	input := domain.ProductsCreate{}
 	err := FromJSON(w, r, &input)
@@ -160,13 +160,13 @@ func (s *Server) createProductHandler(w http.ResponseWriter, r *http.Request) {
 // @Security     Bearer
 // @Produce      json
 // @Accept       json
-// @Param        product      body        domain.ProductsUpdate true "Update products"
-// @Success      200          {array}     domain.WrapProducts
-// @Failure      400          {object}    http.HTTPError
-// @Failure      403            {object}    http.HTTPError
-// @Failure      413          {object}    http.HTTPError
-// @Failure      500          {object}    http.HTTPError
-// @Router       /products/   [patch]
+// @Param        product         body        domain.ProductsUpdate true "Update products"
+// @Success      200             {array}     domain.WrapProducts
+// @Failure      400             {object}    http.HTTPError
+// @Failure      403             {object}    http.HTTPError
+// @Failure      413             {object}    http.HTTPError
+// @Failure      500             {object}    http.HTTPError
+// @Router       /products/{id}  [patch]
 func (s *Server) updateProductHandler(w http.ResponseWriter, r *http.Request) {
 	ID, err := strconv.Atoi(chi.URLParam(r, "id"))
 	if err != nil {

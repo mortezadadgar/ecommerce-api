@@ -41,7 +41,9 @@ type Server struct {
 	ProductsStore   domain.ProductsService
 	CategoriesStore domain.CategoriesService
 	TokensStore     domain.TokensService
+	CartsStore      domain.CartsService
 	store           Store
+
 	*http.Server
 }
 
@@ -66,7 +68,6 @@ type Store interface {
 func New(store Store) *Server {
 	s := Server{
 		Server: &http.Server{
-			Addr:         os.Getenv("ADDRESS"),
 			ReadTimeout:  5 * time.Second,
 			WriteTimeout: 10 * time.Second,
 		},
@@ -86,7 +87,10 @@ func New(store Store) *Server {
 	s.registerUsersRoutes(r)
 	s.registerProductsRoutes(r)
 	s.registerCategoriesRoutes(r)
+	s.registerCartsRoutes(r)
 	// search in products and categories
+	// orders
+	// cart
 
 	r.Get("/healthcheck", s.healthHandler)
 	r.NotFound(s.notFoundHandler)

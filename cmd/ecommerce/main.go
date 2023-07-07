@@ -29,6 +29,7 @@ func main() {
 	server.ProductsStore = postgres.NewProductsStore(pg.DB)
 	server.CategoriesStore = postgres.NewCategoriesStore(pg.DB)
 	server.TokensStore = postgres.NewTokensStore(pg.DB)
+	server.CartsStore = postgres.NewCartsStore(pg.DB)
 
 	server.Start()
 
@@ -54,7 +55,10 @@ func closeMain(server *http.Server, store http.Store) error {
 		return err
 	}
 
-	store.Close()
+	err = store.Close()
+	if err != nil {
+		return err
+	}
 
 	return nil
 }

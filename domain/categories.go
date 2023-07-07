@@ -41,7 +41,7 @@ type CategoriesUpdate struct {
 	Description *string `json:"description" validate:"omitempty,required"`
 }
 
-// CategoriesFilter represents filters passed to /categories requests.
+// CategoriesFilter represents filters passed to List.
 type CategoriesFilter struct {
 	ID   int    `json:"int"`
 	Name string `json:"name"`

@@ -193,7 +193,7 @@ func (p ProductsStore) Delete(ctx context.Context, id int) error {
 	}
 
 	if rows := result.RowsAffected(); rows != 1 {
-		return fmt.Errorf("expected to affect 1 rows, affected: %d", rows)
+		return sql.ErrNoRows
 	}
 
 	err = tx.Commit(ctx)

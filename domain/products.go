@@ -47,7 +47,7 @@ type ProductsUpdate struct {
 	Quantity    *int    `json:"quantity" validate:"omitempty,required"`
 }
 
-// ProductsFilter represents filters passed to /products requests.
+// ProductsFilter represents filters passed to List.
 type ProductsFilter struct {
 	ID       int    `json:"id"`
 	Category string `json:"category"`

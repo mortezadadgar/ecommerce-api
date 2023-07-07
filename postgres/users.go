@@ -35,7 +35,7 @@ func (u UsersStore) Create(ctx context.Context, user *domain.Users) error {
 	query := `
 	INSERT INTO users(email, password_hash)
 	VALUES(@email, @password_hash)
-	RETURNING id, created_at, updated_at
+	RETURNING id
 	`
 
 	args := pgx.NamedArgs{
@@ -145,7 +145,7 @@ func (u UsersStore) Delete(ctx context.Context, id int) error {
 	}
 
 	if rows := result.RowsAffected(); rows != 1 {
-		return fmt.Errorf("expected to affect 1 rows, affected: %d", rows)
+		return sql.ErrNoRows
 	}
 
 	err = tx.Commit(ctx)

@@ -2,7 +2,7 @@
 CREATE TABLE IF NOT EXISTS products(
 	id             bigserial     NOT NULL, 
 	name           text          NOT NULL UNIQUE,
-	description    text          NOT NULL UNIQUE,
+	description    text          NOT NULL,
 	category       text          NOT NULL,
 	price          int           NOT NULL,
 	quantity       int           NOT NULL,

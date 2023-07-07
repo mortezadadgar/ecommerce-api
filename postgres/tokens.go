@@ -42,8 +42,6 @@ func (t TokensStore) Create(ctx context.Context, token domain.Tokens) error {
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) {
 			switch pgErr.Code {
-			case pgerrcode.UniqueViolation:
-				return store.ErrDuplicatedEntries
 			case pgerrcode.ForeignKeyViolation:
 				return store.ErrForeinKeyViolation
 			}
