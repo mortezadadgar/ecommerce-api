@@ -6,8 +6,8 @@ CREATE TABLE IF NOT EXISTS carts(
 	user_id    bigserial NOT NULL,
 
 	PRIMARY KEY(id),
-	FOREIGN KEY(user_id)    REFERENCES users(id),
-	FOREIGN KEY(product_id) REFERENCES products(id)
+	FOREIGN KEY(user_id)    REFERENCES users(id) ON DELETE CASCADE,
+	FOREIGN KEY(product_id) REFERENCES products(id) ON DELETE CASCADE
 );
 
 -- +migrate Down

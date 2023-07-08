@@ -10,7 +10,7 @@ CREATE TABLE IF NOT EXISTS products(
 	updated_at     timestamptz   DEFAULT NOW(),
 
 	PRIMARY KEY(id),
-	FOREIGN KEY(category) REFERENCES categories(name)
+	FOREIGN KEY(category) REFERENCES categories(name) ON DELETE CASCADE
 );
 
 -- +migrate Down

@@ -4,7 +4,7 @@ CREATE UNLOGGED TABLE IF NOT EXISTS tokens(
 	user_id bigserial   NOT NULL,
 	expiry  timestamptz NOT NULL,
 
-	FOREIGN KEY(user_id) REFERENCES users(id)
+	FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
 -- +migrate Down
