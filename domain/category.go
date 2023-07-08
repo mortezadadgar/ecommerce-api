@@ -10,18 +10,18 @@ import (
 	"github.com/go-playground/validator/v10"
 )
 
-// WrapCategories wraps categories for user representation.
-type WrapCategories struct {
-	Category Categories `json:"category"`
+// WrapCategory wraps categories for user representation.
+type WrapCategory struct {
+	Category Category `json:"category"`
 }
 
-// WrapCategoriesList wraps list of list categories for user representation.
-type WrapCategoriesList struct {
-	Categories []Categories `json:"categories"`
+// WrapCategoryList wraps list of list categories for user representation.
+type WrapCategoryList struct {
+	Categories []Category `json:"categories"`
 }
 
-// Categories represents categories model.
-type Categories struct {
+// Category represents categories model.
+type Category struct {
 	ID          int       `json:"id"`
 	Name        string    `json:"name"`
 	Description string    `json:"description"`
@@ -29,20 +29,20 @@ type Categories struct {
 	UpdatedAt   time.Time `json:"-" db:"updated_at"`
 }
 
-// CategoriesCreate represents categories model for POST requests.
-type CategoriesCreate struct {
+// CategoryCreate represents categories model for POST requests.
+type CategoryCreate struct {
 	Name        string `json:"name" validate:"required"`
 	Description string `json:"description" validate:"required"`
 }
 
-// CategoriesUpdate represents categories model for PATCH requests.
-type CategoriesUpdate struct {
+// CategoryUpdate represents categories model for PATCH requests.
+type CategoryUpdate struct {
 	Name        *string `json:"name" validate:"omitempty,required"`
 	Description *string `json:"description" validate:"omitempty,required"`
 }
 
-// CategoriesFilter represents filters passed to List.
-type CategoriesFilter struct {
+// CategoryFilter represents filters passed to List.
+type CategoryFilter struct {
 	ID   int    `json:"int"`
 	Name string `json:"name"`
 	Sort string `json:"sort"`
@@ -51,37 +51,37 @@ type CategoriesFilter struct {
 	Offset int `json:"offset"`
 }
 
-// CategoriesService represents a service for managing categories.
-type CategoriesService interface {
-	Create(ctx context.Context, category *Categories) error
-	GetByID(ctx context.Context, id int) (Categories, error)
-	Update(ctx context.Context, category *Categories) error
+// CategoryService represents a service for managing categories.
+type CategoryService interface {
+	Create(ctx context.Context, category *Category) error
+	GetByID(ctx context.Context, ID int) (Category, error)
+	Update(ctx context.Context, category *Category) error
 	Delete(ctx context.Context, ID int) error
-	List(ctx context.Context, filter CategoriesFilter) ([]Categories, error)
+	List(ctx context.Context, filter CategoryFilter) ([]Category, error)
 }
 
 // Validate validates catergories.
-func (c CategoriesCreate) Validate() error {
+func (c CategoryCreate) Validate() error {
 	v := validator.New()
 	return v.Struct(c)
 }
 
 // CreateModel set input values to a new struct and return a new instance.
-func (c CategoriesCreate) CreateModel() Categories {
-	return Categories{
+func (c CategoryCreate) CreateModel() Category {
+	return Category{
 		Name:        c.Name,
 		Description: c.Description,
 	}
 }
 
 // Validate validates catergories.
-func (c CategoriesUpdate) Validate() error {
+func (c CategoryUpdate) Validate() error {
 	v := validator.New()
 	return v.Struct(c)
 }
 
 // UpdateModel checks whether input are not nil and set values.
-func (c CategoriesUpdate) UpdateModel(category *Categories) {
+func (c CategoryUpdate) UpdateModel(category *Category) {
 	if c.Name != nil {
 		category.Name = *c.Name
 	}

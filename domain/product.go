@@ -7,18 +7,18 @@ import (
 	"github.com/go-playground/validator/v10"
 )
 
-// WrapProducts wraps products for user representation.
-type WrapProducts struct {
-	Product Products `json:"product"`
+// WrapProduct wraps products for user representation.
+type WrapProduct struct {
+	Product Product `json:"product"`
 }
 
-// WrapProductsList wraps list of products for user representation.
-type WrapProductsList struct {
-	Products []Products `json:"products"`
+// WrapProductList wraps list of products for user representation.
+type WrapProductList struct {
+	Products []Product `json:"products"`
 }
 
-// Products represents products model.
-type Products struct {
+// Product represents products model.
+type Product struct {
 	ID          int       `json:"id"`
 	Name        string    `json:"name"`
 	Description string    `json:"description"`
@@ -29,8 +29,8 @@ type Products struct {
 	UpdatedAt   time.Time `json:"-" db:"updated_at"`
 }
 
-// ProductsCreate represents products model for POST requests.
-type ProductsCreate struct {
+// ProductCreate represents products model for POST requests.
+type ProductCreate struct {
 	Name        string `json:"name" validate:"required"`
 	Description string `json:"description" validate:"required"`
 	Category    string `json:"category" validate:"required"`
@@ -38,8 +38,8 @@ type ProductsCreate struct {
 	Quantity    int    `json:"quantity" validate:"required"`
 }
 
-// ProductsUpdate represents products model for PATCH requests.
-type ProductsUpdate struct {
+// ProductUpdate represents products model for PATCH requests.
+type ProductUpdate struct {
 	Name        *string `json:"name" validate:"omitempty,required"`
 	Description *string `json:"description" validate:"omitempty,required"`
 	Category    *string `json:"category" validate:"omitempty,required"`
@@ -47,8 +47,8 @@ type ProductsUpdate struct {
 	Quantity    *int    `json:"quantity" validate:"omitempty,required"`
 }
 
-// ProductsFilter represents filters passed to List.
-type ProductsFilter struct {
+// ProductFilter represents filters passed to List.
+type ProductFilter struct {
 	ID       int    `json:"id"`
 	Category string `json:"category"`
 	Name     string `json:"name"`
@@ -58,24 +58,24 @@ type ProductsFilter struct {
 	Sort   string `json:"sort"`
 }
 
-// ProductsService represents a service for managing products.
-type ProductsService interface {
-	Create(ctx context.Context, product *Products) error
-	GetByID(ctx context.Context, id int) (Products, error)
-	Update(ctx context.Context, product *Products) error
+// ProductService represents a service for managing products.
+type ProductService interface {
+	Create(ctx context.Context, product *Product) error
+	GetByID(ctx context.Context, ID int) (Product, error)
+	Update(ctx context.Context, product *Product) error
 	Delete(ctx context.Context, ID int) error
-	List(ctx context.Context, filter ProductsFilter) ([]Products, error)
+	List(ctx context.Context, filter ProductFilter) ([]Product, error)
 }
 
 // Validate validates create products.
-func (p ProductsCreate) Validate() error {
+func (p ProductCreate) Validate() error {
 	v := validator.New()
 	return v.Struct(p)
 }
 
 // CreateModel set input values to a new struct and return a new instance.
-func (p ProductsCreate) CreateModel() Products {
-	return Products{
+func (p ProductCreate) CreateModel() Product {
+	return Product{
 		Name:        p.Name,
 		Description: p.Description,
 		Category:    p.Category,
@@ -85,13 +85,13 @@ func (p ProductsCreate) CreateModel() Products {
 }
 
 // Validate validates update products.
-func (p ProductsUpdate) Validate() error {
+func (p ProductUpdate) Validate() error {
 	v := validator.New()
 	return v.Struct(p)
 }
 
 // UpdateModel checks whether products input are not nil and set values.
-func (p ProductsUpdate) UpdateModel(product *Products) {
+func (p ProductUpdate) UpdateModel(product *Product) {
 	if p.Name != nil {
 		product.Name = *p.Name
 	}

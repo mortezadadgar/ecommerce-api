@@ -27,7 +27,7 @@ func (s *Server) registerProductsRoutes(r *chi.Mux) {
 // @Tags 		 Products
 // @Produce      json
 // @Param        id             path        int  true "Product ID"
-// @Success      200            {array}     domain.WrapProducts
+// @Success      200            {array}     domain.WrapProduct
 // @Failure      400            {object}    http.HTTPError
 // @Failure      404            {object}    http.HTTPError
 // @Failure      500            {object}    http.HTTPError
@@ -51,7 +51,7 @@ func (s *Server) getProductHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = ToJSON(w, domain.WrapProducts{Product: product}, http.StatusOK)
+	err = ToJSON(w, domain.WrapProduct{Product: product}, http.StatusOK)
 	if err != nil {
 		Error(w, r, err, http.StatusInternalServerError)
 	}
@@ -64,7 +64,7 @@ func (s *Server) getProductHandler(w http.ResponseWriter, r *http.Request) {
 // @Param        name         query       string  false "List by name"
 // @Param        category     query       string  false "List by category"
 // @Param        sort         query       string  false "Sort by a column"
-// @Success      200          {array}     domain.WrapProductsList
+// @Success      200          {array}     domain.WrapProductList
 // @Failure      400          {object}    http.HTTPError
 // @Failure      404          {object}    http.HTTPError
 // @Failure      500          {object}    http.HTTPError
@@ -82,7 +82,7 @@ func (s *Server) listProductsHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	filter := domain.ProductsFilter{
+	filter := domain.ProductFilter{
 		Name:     r.URL.Query().Get("name"),
 		Sort:     r.URL.Query().Get("sort"),
 		Category: r.URL.Query().Get("category"),
@@ -102,7 +102,7 @@ func (s *Server) listProductsHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = ToJSON(w, domain.WrapProductsList{Products: products}, http.StatusOK)
+	err = ToJSON(w, domain.WrapProductList{Products: products}, http.StatusOK)
 	if err != nil {
 		Error(w, r, err, http.StatusInternalServerError)
 	}
@@ -113,15 +113,15 @@ func (s *Server) listProductsHandler(w http.ResponseWriter, r *http.Request) {
 // @Security     Bearer
 // @Produce      json
 // @Accept       json
-// @Param        product          body        domain.ProductsCreate true "Create product"
-// @Success      201              {array}     domain.WrapProducts
+// @Param        product          body        domain.ProductCreate true "Create product"
+// @Success      201              {array}     domain.WrapProduct
 // @Failure      400              {object}    http.HTTPError
 // @Failure      403              {object}    http.HTTPError
 // @Failure      413              {object}    http.HTTPError
 // @Failure      500              {object}    http.HTTPError
 // @Router       /products/{id}   [post]
 func (s *Server) createProductHandler(w http.ResponseWriter, r *http.Request) {
-	input := domain.ProductsCreate{}
+	input := domain.ProductCreate{}
 	err := FromJSON(w, r, &input)
 	if err != nil {
 		Error(w, r, err, http.StatusInternalServerError)
@@ -149,7 +149,7 @@ func (s *Server) createProductHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Location", fmt.Sprintf("/products/%d", product.ID))
-	err = ToJSON(w, domain.WrapProducts{Product: product}, http.StatusCreated)
+	err = ToJSON(w, domain.WrapProduct{Product: product}, http.StatusCreated)
 	if err != nil {
 		Error(w, r, err, http.StatusInternalServerError)
 	}
@@ -160,8 +160,8 @@ func (s *Server) createProductHandler(w http.ResponseWriter, r *http.Request) {
 // @Security     Bearer
 // @Produce      json
 // @Accept       json
-// @Param        product         body        domain.ProductsUpdate true "Update products"
-// @Success      200             {array}     domain.WrapProducts
+// @Param        product         body        domain.ProductUpdate true "Update product"
+// @Success      200             {array}     domain.WrapProduct
 // @Failure      400             {object}    http.HTTPError
 // @Failure      403             {object}    http.HTTPError
 // @Failure      413             {object}    http.HTTPError
@@ -174,7 +174,7 @@ func (s *Server) updateProductHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	input := domain.ProductsUpdate{}
+	input := domain.ProductUpdate{}
 	err = FromJSON(w, r, &input)
 	if err != nil {
 		Error(w, r, err, http.StatusInternalServerError)
@@ -213,7 +213,7 @@ func (s *Server) updateProductHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = ToJSON(w, domain.WrapProducts{Product: product}, http.StatusOK)
+	err = ToJSON(w, domain.WrapProduct{Product: product}, http.StatusOK)
 	if err != nil {
 		Error(w, r, err, http.StatusInternalServerError)
 	}

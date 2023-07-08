@@ -37,11 +37,11 @@ import (
 
 // Server represents an HTTP server.
 type Server struct {
-	UsersStore      domain.UsersService
-	ProductsStore   domain.ProductsService
-	CategoriesStore domain.CategoriesService
-	TokensStore     domain.TokensService
-	CartsStore      domain.CartsService
+	UsersStore      domain.UserService
+	ProductsStore   domain.ProductService
+	CategoriesStore domain.CategoryService
+	TokensStore     domain.TokenService
+	CartsStore      domain.CartService
 	store           Store
 
 	*http.Server

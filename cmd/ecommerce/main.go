@@ -25,11 +25,11 @@ func main() {
 
 	server := http.New(pg)
 
-	server.UsersStore = postgres.NewUsersStore(pg.DB)
-	server.ProductsStore = postgres.NewProductsStore(pg.DB)
-	server.CategoriesStore = postgres.NewCategoriesStore(pg.DB)
-	server.TokensStore = postgres.NewTokensStore(pg.DB)
-	server.CartsStore = postgres.NewCartsStore(pg.DB)
+	server.UsersStore = postgres.NewUserStore(pg.DB)
+	server.ProductsStore = postgres.NewProductStore(pg.DB)
+	server.CategoriesStore = postgres.NewCategoryStore(pg.DB)
+	server.TokensStore = postgres.NewTokenStore(pg.DB)
+	server.CartsStore = postgres.NewCartStore(pg.DB)
 
 	server.Start()
 

@@ -14,18 +14,18 @@ import (
 	"github.com/mortezadadgar/ecommerce-api/store"
 )
 
-// ProductsStore represents products database.
-type ProductsStore struct {
+// ProductStore represents products database.
+type ProductStore struct {
 	db *pgxpool.Pool
 }
 
-// NewProductsStore returns a new instance of ProductsStore.
-func NewProductsStore(db *pgxpool.Pool) ProductsStore {
-	return ProductsStore{db: db}
+// NewProductStore returns a new instance of ProductStore.
+func NewProductStore(db *pgxpool.Pool) ProductStore {
+	return ProductStore{db: db}
 }
 
 // Create creates a new product in store.
-func (p ProductsStore) Create(ctx context.Context, product *domain.Products) error {
+func (p ProductStore) Create(ctx context.Context, product *domain.Product) error {
 	tx, err := p.db.Begin(ctx)
 	if err != nil {
 		return fmt.Errorf("%v: %v", store.ErrBeginTransaction, err)
@@ -74,17 +74,17 @@ func (p ProductsStore) Create(ctx context.Context, product *domain.Products) err
 }
 
 // GetByID get product by id from store.
-func (p ProductsStore) GetByID(ctx context.Context, id int) (domain.Products, error) {
-	product, err := p.List(ctx, domain.ProductsFilter{ID: id})
+func (p ProductStore) GetByID(ctx context.Context, ID int) (domain.Product, error) {
+	product, err := p.List(ctx, domain.ProductFilter{ID: ID})
 	if err != nil {
-		return domain.Products{}, err
+		return domain.Product{}, err
 	}
 
 	return product[0], nil
 }
 
 // List lists products with optional filter.
-func (p ProductsStore) List(ctx context.Context, filter domain.ProductsFilter) ([]domain.Products, error) {
+func (p ProductStore) List(ctx context.Context, filter domain.ProductFilter) ([]domain.Product, error) {
 	tx, err := p.db.Begin(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("%v: %v", store.ErrBeginTransaction, err)
@@ -106,7 +106,7 @@ func (p ProductsStore) List(ctx context.Context, filter domain.ProductsFilter) (
 		return nil, fmt.Errorf("failed to query list products: %v", err)
 	}
 
-	products, err := pgx.CollectRows(rows, pgx.RowToStructByName[domain.Products])
+	products, err := pgx.CollectRows(rows, pgx.RowToStructByName[domain.Product])
 	if err != nil {
 		return nil, fmt.Errorf("failed to scan rows of products: %v", err)
 	}
@@ -124,7 +124,7 @@ func (p ProductsStore) List(ctx context.Context, filter domain.ProductsFilter) (
 }
 
 // Update updates a product by id in store.
-func (p ProductsStore) Update(ctx context.Context, product *domain.Products) error {
+func (p ProductStore) Update(ctx context.Context, product *domain.Product) error {
 	tx, err := p.db.Begin(ctx)
 	if err != nil {
 		return fmt.Errorf("%v: %v", store.ErrBeginTransaction, err)
@@ -171,7 +171,7 @@ func (p ProductsStore) Update(ctx context.Context, product *domain.Products) err
 }
 
 // Delete deletes a product by id from store.
-func (p ProductsStore) Delete(ctx context.Context, id int) error {
+func (p ProductStore) Delete(ctx context.Context, ID int) error {
 	tx, err := p.db.Begin(ctx)
 	if err != nil {
 		return fmt.Errorf("%v: %v", store.ErrBeginTransaction, err)
@@ -184,7 +184,7 @@ func (p ProductsStore) Delete(ctx context.Context, id int) error {
 	`
 
 	args := pgx.NamedArgs{
-		"id": id,
+		"id": ID,
 	}
 
 	result, err := tx.Exec(ctx, query, args)

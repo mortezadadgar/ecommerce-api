@@ -14,18 +14,18 @@ import (
 	"github.com/mortezadadgar/ecommerce-api/store"
 )
 
-// UsersStore represents users database.
-type UsersStore struct {
+// UserStore represents users database.
+type UserStore struct {
 	db *pgxpool.Pool
 }
 
-// NewUsersStore returns a new instance of UsersStore.
-func NewUsersStore(db *pgxpool.Pool) UsersStore {
-	return UsersStore{db: db}
+// NewUserStore returns a new instance of UsersStore.
+func NewUserStore(db *pgxpool.Pool) UserStore {
+	return UserStore{db: db}
 }
 
 // Create creates a new user in store.
-func (u UsersStore) Create(ctx context.Context, user *domain.Users) error {
+func (u UserStore) Create(ctx context.Context, user *domain.User) error {
 	tx, err := u.db.Begin(ctx)
 	if err != nil {
 		return fmt.Errorf("%v: %v", store.ErrBeginTransaction, err)
@@ -64,27 +64,27 @@ func (u UsersStore) Create(ctx context.Context, user *domain.Users) error {
 }
 
 // GetByID get user by id from store.
-func (u UsersStore) GetByID(ctx context.Context, id int) (domain.Users, error) {
-	user, err := u.List(ctx, domain.UsersFilter{ID: id})
+func (u UserStore) GetByID(ctx context.Context, ID int) (domain.User, error) {
+	user, err := u.List(ctx, domain.UserFilter{ID: ID})
 	if err != nil {
-		return domain.Users{}, err
+		return domain.User{}, err
 	}
 
 	return user[0], nil
 }
 
 // GetByEmail get user by email from store.
-func (u UsersStore) GetByEmail(ctx context.Context, email string) (domain.Users, error) {
-	user, err := u.List(ctx, domain.UsersFilter{Email: email})
+func (u UserStore) GetByEmail(ctx context.Context, email string) (domain.User, error) {
+	user, err := u.List(ctx, domain.UserFilter{Email: email})
 	if err != nil {
-		return domain.Users{}, err
+		return domain.User{}, err
 	}
 
 	return user[0], nil
 }
 
 // List lists users with optional filter.
-func (u UsersStore) List(ctx context.Context, filter domain.UsersFilter) ([]domain.Users, error) {
+func (u UserStore) List(ctx context.Context, filter domain.UserFilter) ([]domain.User, error) {
 	tx, err := u.db.Begin(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("%v: %v", store.ErrBeginTransaction, err)
@@ -105,7 +105,7 @@ func (u UsersStore) List(ctx context.Context, filter domain.UsersFilter) ([]doma
 		return nil, fmt.Errorf("failed to query list users: %v", err)
 	}
 
-	users, err := pgx.CollectRows(rows, pgx.RowToStructByName[domain.Users])
+	users, err := pgx.CollectRows(rows, pgx.RowToStructByName[domain.User])
 	if err != nil {
 		return nil, fmt.Errorf("failed to scan rows of users: %v", err)
 	}
@@ -123,7 +123,7 @@ func (u UsersStore) List(ctx context.Context, filter domain.UsersFilter) ([]doma
 }
 
 // Delete deletes a user by id from store.
-func (u UsersStore) Delete(ctx context.Context, id int) error {
+func (u UserStore) Delete(ctx context.Context, ID int) error {
 	tx, err := u.db.Begin(ctx)
 	if err != nil {
 		return fmt.Errorf("%v: %v", store.ErrBeginTransaction, err)
@@ -136,7 +136,7 @@ func (u UsersStore) Delete(ctx context.Context, id int) error {
 	`
 
 	args := pgx.NamedArgs{
-		"id": id,
+		"id": ID,
 	}
 
 	result, err := tx.Exec(ctx, query, args)

@@ -10,11 +10,11 @@ type contextKey int
 
 const userContextKey = contextKey(iota)
 
-func newUserContext(ctx context.Context, user domain.Users) context.Context {
+func newUserContext(ctx context.Context, user domain.User) context.Context {
 	return context.WithValue(ctx, userContextKey, user)
 }
 
 func userIDFromContext(ctx context.Context) int {
-	user, _ := ctx.Value(userContextKey).(domain.Users)
+	user, _ := ctx.Value(userContextKey).(domain.User)
 	return user.ID
 }

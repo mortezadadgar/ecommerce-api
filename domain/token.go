@@ -10,29 +10,29 @@ import (
 
 // WrapToken wraps token for user representation.
 type WrapToken struct {
-	Token Tokens `json:"token"`
+	Token Token `json:"token"`
 }
 
-// Tokens represents tokens model.
-type Tokens struct {
+// Token represents token model.
+type Token struct {
 	Hashed []byte    `json:"-"`
 	Plain  string    `json:"plain_token" db:"-"`
 	UserID int       `json:"-" db:"user_id"`
 	Expiry time.Time `json:"expiry"`
 }
 
-// TokensService represents a service for managing tokens.
-type TokensService interface {
-	Create(ctx context.Context, token Tokens) error
-	GetUser(ctx context.Context, hashedToken string) (Users, error)
+// TokenService represents a service for managing tokens.
+type TokenService interface {
+	Create(ctx context.Context, token Token) error
+	GetUser(ctx context.Context, hashedToken string) (User, error)
 }
 
 // GenerateToken returns generated token.
-func GenerateToken(id int, length int, expiry time.Duration) (Tokens, error) {
+func GenerateToken(id int, length int, expiry time.Duration) (Token, error) {
 	randBytes := make([]byte, length)
 	_, err := rand.Read(randBytes)
 	if err != nil {
-		return Tokens{}, err
+		return Token{}, err
 	}
 
 	plainToken := base64.RawURLEncoding.EncodeToString(randBytes)
@@ -40,7 +40,7 @@ func GenerateToken(id int, length int, expiry time.Duration) (Tokens, error) {
 
 	expiryTime := time.Now().Add(expiry)
 
-	token := Tokens{
+	token := Token{
 		Hashed: hashedToken,
 		Plain:  plainToken,
 		UserID: id,

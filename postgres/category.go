@@ -14,18 +14,18 @@ import (
 	"github.com/mortezadadgar/ecommerce-api/store"
 )
 
-// CategoriesStore represents categories database.
-type CategoriesStore struct {
+// CategoryStore represents categories database.
+type CategoryStore struct {
 	db *pgxpool.Pool
 }
 
-// NewCategoriesStore returns a new instance of CategoriesStore.
-func NewCategoriesStore(db *pgxpool.Pool) CategoriesStore {
-	return CategoriesStore{db: db}
+// NewCategoryStore returns a new instance of CategoriesStore.
+func NewCategoryStore(db *pgxpool.Pool) CategoryStore {
+	return CategoryStore{db: db}
 }
 
 // Create creates a new category in store.
-func (c CategoriesStore) Create(ctx context.Context, category *domain.Categories) error {
+func (c CategoryStore) Create(ctx context.Context, category *domain.Category) error {
 	tx, err := c.db.Begin(ctx)
 	if err != nil {
 		return fmt.Errorf("%v: %v", store.ErrBeginTransaction, err)
@@ -68,17 +68,17 @@ func (c CategoriesStore) Create(ctx context.Context, category *domain.Categories
 }
 
 // GetByID get category by id from store.
-func (c CategoriesStore) GetByID(ctx context.Context, id int) (domain.Categories, error) {
-	category, err := c.List(ctx, domain.CategoriesFilter{ID: id})
+func (c CategoryStore) GetByID(ctx context.Context, ID int) (domain.Category, error) {
+	category, err := c.List(ctx, domain.CategoryFilter{ID: ID})
 	if err != nil {
-		return domain.Categories{}, err
+		return domain.Category{}, err
 	}
 
 	return category[0], nil
 }
 
 // List lists categories with optional filter.
-func (c CategoriesStore) List(ctx context.Context, filter domain.CategoriesFilter) ([]domain.Categories, error) {
+func (c CategoryStore) List(ctx context.Context, filter domain.CategoryFilter) ([]domain.Category, error) {
 	tx, err := c.db.Begin(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("%v: %v", store.ErrBeginTransaction, err)
@@ -99,7 +99,7 @@ func (c CategoriesStore) List(ctx context.Context, filter domain.CategoriesFilte
 		return nil, fmt.Errorf("failed to list categories: %v", err)
 	}
 
-	categories, err := pgx.CollectRows(rows, pgx.RowToStructByName[domain.Categories])
+	categories, err := pgx.CollectRows(rows, pgx.RowToStructByName[domain.Category])
 	if err != nil {
 		return nil, fmt.Errorf("failed to scan rows of categories: %v", err)
 	}
@@ -117,7 +117,7 @@ func (c CategoriesStore) List(ctx context.Context, filter domain.CategoriesFilte
 }
 
 // Update updates a category by id in store.
-func (c CategoriesStore) Update(ctx context.Context, category *domain.Categories) error {
+func (c CategoryStore) Update(ctx context.Context, category *domain.Category) error {
 	tx, err := c.db.Begin(ctx)
 	if err != nil {
 		return fmt.Errorf("%v: %v", store.ErrBeginTransaction, err)
@@ -161,7 +161,7 @@ func (c CategoriesStore) Update(ctx context.Context, category *domain.Categories
 }
 
 // Delete deletes a category by id from store.
-func (c CategoriesStore) Delete(ctx context.Context, id int) error {
+func (c CategoryStore) Delete(ctx context.Context, ID int) error {
 	tx, err := c.db.Begin(ctx)
 	if err != nil {
 		return fmt.Errorf("%v: %v", store.ErrBeginTransaction, err)
@@ -174,7 +174,7 @@ func (c CategoriesStore) Delete(ctx context.Context, id int) error {
 	`
 
 	args := pgx.NamedArgs{
-		"id": id,
+		"id": ID,
 	}
 
 	result, err := tx.Exec(ctx, query, args)

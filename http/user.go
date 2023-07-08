@@ -39,7 +39,7 @@ func (s *Server) registerUsersRoutes(r *chi.Mux) {
 // @Security     Bearer
 // @Produce      json
 // @Param        id             path        int  true "User ID"
-// @Success      200            {array}     domain.WrapUsers
+// @Success      200            {array}     domain.WrapUser
 // @Failure      400            {object}    http.HTTPError
 // @Failure      403            {object}    http.HTTPError
 // @Failure      404            {object}    http.HTTPError
@@ -64,7 +64,7 @@ func (s *Server) getUserHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = ToJSON(w, domain.WrapUsers{User: user}, http.StatusOK)
+	err = ToJSON(w, domain.WrapUser{User: user}, http.StatusOK)
 	if err != nil {
 		Error(w, r, err, http.StatusInternalServerError)
 	}
@@ -77,7 +77,7 @@ func (s *Server) getUserHandler(w http.ResponseWriter, r *http.Request) {
 // @Param        limit          query       string  false "Limit results"
 // @Param        offset         query       string  false "Offset results"
 // @Param        sort           query       string  false "Sort by a column"
-// @Success      200            {array}     domain.WrapUsersList
+// @Success      200            {array}     domain.WrapUserList
 // @Failure      400            {object}    http.HTTPError
 // @Failure      403            {object}    http.HTTPError
 // @Failure      404            {object}    http.HTTPError
@@ -96,7 +96,7 @@ func (s *Server) listUsersHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	filter := domain.UsersFilter{
+	filter := domain.UserFilter{
 		Sort:   r.URL.Query().Get("sort"),
 		Limit:  limit,
 		Offset: offset,
@@ -114,7 +114,7 @@ func (s *Server) listUsersHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = ToJSON(w, domain.WrapUsersList{Users: users}, http.StatusOK)
+	err = ToJSON(w, domain.WrapUserList{Users: users}, http.StatusOK)
 	if err != nil {
 		Error(w, r, err, http.StatusInternalServerError)
 	}
@@ -125,15 +125,15 @@ func (s *Server) listUsersHandler(w http.ResponseWriter, r *http.Request) {
 // @Security     Bearer
 // @Produce      json
 // @Accept       json
-// @Param        product      body        domain.UsersCreate true "Create Users"
-// @Success      201          {array}     domain.WrapProducts
+// @Param        user         body        domain.UserCreate true "Create User"
+// @Success      201          {array}     domain.WrapUser
 // @Failure      400          {object}    http.HTTPError
-// @Failure      403            {object}    http.HTTPError
+// @Failure      403          {object}    http.HTTPError
 // @Failure      413          {object}    http.HTTPError
 // @Failure      500          {object}    http.HTTPError
 // @Router       /users/      [post]
 func (s *Server) createUserHandler(w http.ResponseWriter, r *http.Request) {
-	input := domain.UsersCreate{}
+	input := domain.UserCreate{}
 	err := FromJSON(w, r, &input)
 	if err != nil {
 		Error(w, r, err, http.StatusInternalServerError)
@@ -166,8 +166,8 @@ func (s *Server) createUserHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Location", fmt.Sprintf("/products/%d", user.ID))
-	err = ToJSON(w, domain.WrapUsers{User: user}, http.StatusCreated)
+	w.Header().Set("Location", fmt.Sprintf("/users/%d", user.ID))
+	err = ToJSON(w, domain.WrapUser{User: user}, http.StatusCreated)
 	if err != nil {
 		Error(w, r, err, http.StatusInternalServerError)
 	}
@@ -205,15 +205,15 @@ func (s *Server) deleteUserHandler(w http.ResponseWriter, r *http.Request) {
 // @Tags 		 Users
 // @Produce      json
 // @Accept       json
-// @Param        product      body        domain.UsersLogin true "Create Users"
-// @Success      200          {array}     domain.WrapProducts
+// @Param        user         body        domain.UserLogin true "Create User"
+// @Success      200          {array}     domain.WrapUser
 // @Failure      400          {object}    http.HTTPError
 // @Failure      404          {object}    http.HTTPError
 // @Failure      413          {object}    http.HTTPError
 // @Failure      500          {object}    http.HTTPError
 // @Router       /auth/login  [post]
 func (s *Server) loginAuthHandler(w http.ResponseWriter, r *http.Request) {
-	input := domain.UsersLogin{}
+	input := domain.UserLogin{}
 	err := FromJSON(w, r, &input)
 	if err != nil {
 		Error(w, r, err, http.StatusInternalServerError)

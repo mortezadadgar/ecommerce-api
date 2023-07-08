@@ -14,18 +14,18 @@ import (
 	"github.com/mortezadadgar/ecommerce-api/store"
 )
 
-// CartsStore represents carts database.
-type CartsStore struct {
+// CartStore represents carts database.
+type CartStore struct {
 	db *pgxpool.Pool
 }
 
-// NewCartsStore returns a new instance of CartsStore.
-func NewCartsStore(db *pgxpool.Pool) CartsStore {
-	return CartsStore{db: db}
+// NewCartStore returns a new instance of CartStore.
+func NewCartStore(db *pgxpool.Pool) CartStore {
+	return CartStore{db: db}
 }
 
 // Create creates a new cart in store.
-func (c CartsStore) Create(ctx context.Context, cart *domain.Carts) error {
+func (c CartStore) Create(ctx context.Context, cart *domain.Cart) error {
 	tx, err := c.db.Begin(ctx)
 	if err != nil {
 		return fmt.Errorf("%v: %v", store.ErrBeginTransaction, err)
@@ -67,8 +67,8 @@ func (c CartsStore) Create(ctx context.Context, cart *domain.Carts) error {
 }
 
 // GetByUser get user's cart by id from store.
-func (c CartsStore) GetByUser(ctx context.Context, userID int) ([]domain.Carts, error) {
-	cart, err := c.List(ctx, domain.CartsFilter{UserID: userID})
+func (c CartStore) GetByUser(ctx context.Context, userID int) ([]domain.Cart, error) {
+	cart, err := c.List(ctx, domain.CartFilter{UserID: userID})
 	if err != nil {
 		return nil, err
 	}
@@ -77,17 +77,17 @@ func (c CartsStore) GetByUser(ctx context.Context, userID int) ([]domain.Carts, 
 }
 
 // GetByID get cart by id from store.
-func (c CartsStore) GetByID(ctx context.Context, id int) (domain.Carts, error) {
-	cart, err := c.List(ctx, domain.CartsFilter{ID: id})
+func (c CartStore) GetByID(ctx context.Context, ID int) (domain.Cart, error) {
+	cart, err := c.List(ctx, domain.CartFilter{ID: ID})
 	if err != nil {
-		return domain.Carts{}, err
+		return domain.Cart{}, err
 	}
 
 	return cart[0], nil
 }
 
 // List lists carts with optional filter.
-func (c CartsStore) List(ctx context.Context, filter domain.CartsFilter) ([]domain.Carts, error) {
+func (c CartStore) List(ctx context.Context, filter domain.CartFilter) ([]domain.Cart, error) {
 	tx, err := c.db.Begin(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("%v: %v", store.ErrBeginTransaction, err)
@@ -108,7 +108,7 @@ func (c CartsStore) List(ctx context.Context, filter domain.CartsFilter) ([]doma
 		return nil, fmt.Errorf("failed to query list carts: %v", err)
 	}
 
-	carts, err := pgx.CollectRows(rows, pgx.RowToStructByName[domain.Carts])
+	carts, err := pgx.CollectRows(rows, pgx.RowToStructByName[domain.Cart])
 	if err != nil {
 		return nil, fmt.Errorf("failed to scan rows of carts: %v", err)
 	}
@@ -126,7 +126,7 @@ func (c CartsStore) List(ctx context.Context, filter domain.CartsFilter) ([]doma
 }
 
 // Update updates a cart by id in store.
-func (c CartsStore) Update(ctx context.Context, cart *domain.Carts) error {
+func (c CartStore) Update(ctx context.Context, cart *domain.Cart) error {
 	tx, err := c.db.Begin(ctx)
 	if err != nil {
 		return fmt.Errorf("%v: %v", store.ErrBeginTransaction, err)
@@ -169,7 +169,7 @@ func (c CartsStore) Update(ctx context.Context, cart *domain.Carts) error {
 }
 
 // Delete deletes a cart by id from store.
-func (c CartsStore) Delete(ctx context.Context, id int) error {
+func (c CartStore) Delete(ctx context.Context, ID int) error {
 	tx, err := c.db.Begin(ctx)
 	if err != nil {
 		return fmt.Errorf("%v: %v", store.ErrBeginTransaction, err)
@@ -182,7 +182,7 @@ func (c CartsStore) Delete(ctx context.Context, id int) error {
 	`
 
 	args := pgx.NamedArgs{
-		"id": id,
+		"id": ID,
 	}
 
 	result, err := tx.Exec(ctx, query, args)

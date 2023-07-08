@@ -6,39 +6,39 @@ import (
 	"github.com/go-playground/validator/v10"
 )
 
-// WrapCarts wraps carts for user representation.
-type WrapCarts struct {
-	Carts Carts `json:"cart"`
+// WrapCart wraps carts for user representation.
+type WrapCart struct {
+	Cart Cart `json:"cart"`
 }
 
-// WrapCartsList wraps list of carts for user representation.
-type WrapCartsList struct {
-	Carts []Carts `json:"carts"`
+// WrapCartList wraps list of carts for user representation.
+type WrapCartList struct {
+	Carts []Cart `json:"carts"`
 }
 
-// Carts represents carts model.
-type Carts struct {
+// Cart represents carts model.
+type Cart struct {
 	ID        int `json:"id"`
 	ProductID int `json:"product_id" db:"product_id"`
 	Quantity  int `json:"quantity" db:"quantity"`
 	UserID    int `json:"user_id" db:"user_id"`
 }
 
-// CartsCreate represents carts model for POST requests.
-type CartsCreate struct {
+// CartCreate represents carts model for POST requests.
+type CartCreate struct {
 	UserID    int `json:"user_id" validate:"required"`
 	ProductID int `json:"product_id" validate:"required"`
 	Quantity  int `json:"quantity" validate:"required"`
 }
 
-// CartsUpdate represents carts model for PATCH requests.
-type CartsUpdate struct {
+// CartUpdate represents carts model for PATCH requests.
+type CartUpdate struct {
 	ProductID *int `json:"product_id" validate:"omitempty,required"`
 	Quantity  *int `json:"quantity" validate:"omitempty,required"`
 }
 
-// CartsFilter represents filters passed to List.
-type CartsFilter struct {
+// CartFilter represents filters passed to List.
+type CartFilter struct {
 	ID     int `json:"id"`
 	UserID int `json:"user_id"`
 
@@ -47,25 +47,25 @@ type CartsFilter struct {
 	Sort   string `json:"sort"`
 }
 
-// CartsService represents a service for managing carts.
-type CartsService interface {
-	GetByUser(ctx context.Context, userID int) ([]Carts, error)
-	GetByID(ctx context.Context, id int) (Carts, error)
-	List(ctx context.Context, filter CartsFilter) ([]Carts, error)
-	Create(ctx context.Context, cart *Carts) error
-	Update(ctx context.Context, cart *Carts) error
+// CartService represents a service for managing carts.
+type CartService interface {
+	GetByUser(ctx context.Context, userID int) ([]Cart, error)
+	GetByID(ctx context.Context, ID int) (Cart, error)
+	List(ctx context.Context, filter CartFilter) ([]Cart, error)
+	Create(ctx context.Context, cart *Cart) error
+	Update(ctx context.Context, cart *Cart) error
 	Delete(ctx context.Context, userID int) error
 }
 
 // Validate validates create products.
-func (c CartsCreate) Validate() error {
+func (c CartCreate) Validate() error {
 	v := validator.New()
 	return v.Struct(c)
 }
 
 // CreateModel set input values to a new struct and return a new instance.
-func (c CartsCreate) CreateModel() Carts {
-	return Carts{
+func (c CartCreate) CreateModel() Cart {
+	return Cart{
 		ProductID: c.ProductID,
 		Quantity:  c.Quantity,
 		UserID:    c.UserID,
@@ -73,13 +73,13 @@ func (c CartsCreate) CreateModel() Carts {
 }
 
 // Validate validates update products.
-func (c CartsUpdate) Validate() error {
+func (c CartUpdate) Validate() error {
 	v := validator.New()
 	return v.Struct(c)
 }
 
 // UpdateModel checks whether carts input are not nil and set values.
-func (c CartsUpdate) UpdateModel(cart *Carts) {
+func (c CartUpdate) UpdateModel(cart *Cart) {
 	if c.ProductID != nil {
 		cart.ProductID = *c.ProductID
 	}

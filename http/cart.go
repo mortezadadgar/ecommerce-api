@@ -29,7 +29,7 @@ func (s *Server) registerCartsRoutes(r *chi.Mux) {
 // @Security     Bearer
 // @Produce      json
 // @Param        id    path     int  true "Cart ID"
-// @Success      200  {array}   domain.WrapCarts
+// @Success      200  {array}   domain.WrapCart
 // @Failure      400  {object}  http.HTTPError
 // @Failure      404  {object}  http.HTTPError
 // @Failure      500  {object}  http.HTTPError
@@ -53,7 +53,7 @@ func (s *Server) getCartsHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = ToJSON(w, domain.WrapCarts{Carts: cart}, http.StatusOK)
+	err = ToJSON(w, domain.WrapCart{Cart: cart}, http.StatusOK)
 	if err != nil {
 		Error(w, r, err, http.StatusInternalServerError)
 	}
@@ -64,7 +64,7 @@ func (s *Server) getCartsHandler(w http.ResponseWriter, r *http.Request) {
 // @Security     Bearer
 // @Produce      json
 // @Param        id    path       int  true "User ID"
-// @Success      200  {array}     domain.WrapCartsList
+// @Success      200  {array}     domain.WrapCartList
 // @Failure      400  {object}    http.HTTPError
 // @Failure      404  {object}    http.HTTPError
 // @Failure      500  {object}    http.HTTPError
@@ -88,7 +88,7 @@ func (s *Server) getUserCartsHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = ToJSON(w, domain.WrapCartsList{Carts: cart}, http.StatusOK)
+	err = ToJSON(w, domain.WrapCartList{Carts: cart}, http.StatusOK)
 	if err != nil {
 		Error(w, r, err, http.StatusInternalServerError)
 	}
@@ -100,7 +100,7 @@ func (s *Server) getUserCartsHandler(w http.ResponseWriter, r *http.Request) {
 // @Param        limit        query       string  false "Limit results"
 // @Param        offset       query       string  false "Offset results"
 // @Param        sort         query       string  false "Sort by a column"
-// @Success      200  {array}   domain.WrapCartsList
+// @Success      200  {array}   domain.WrapCartList
 // @Failure      400  {object}  http.HTTPError
 // @Failure      404  {object}  http.HTTPError
 // @Failure      500  {object}  http.HTTPError
@@ -118,7 +118,7 @@ func (s *Server) listCartsHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	filter := domain.CartsFilter{
+	filter := domain.CartFilter{
 		Sort:   r.URL.Query().Get("sort"),
 		Limit:  limit,
 		Offset: offset,
@@ -136,7 +136,7 @@ func (s *Server) listCartsHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = ToJSON(w, domain.WrapCartsList{Carts: carts}, http.StatusOK)
+	err = ToJSON(w, domain.WrapCartList{Carts: carts}, http.StatusOK)
 	if err != nil {
 		Error(w, r, err, http.StatusInternalServerError)
 	}
@@ -147,8 +147,8 @@ func (s *Server) listCartsHandler(w http.ResponseWriter, r *http.Request) {
 // @Security     Bearer
 // @Produce      json
 // @Accept       json
-// @Param        cart         body        domain.CartsCreate true "Create cart"
-// @Success      201          {array}     domain.WrapCarts
+// @Param        cart         body        domain.CartCreate true "Create cart"
+// @Success      201          {array}     domain.WrapCart
 // @Failure      400          {object}    http.HTTPError
 // @Failure      403          {object}    http.HTTPError
 // @Failure      404          {object}    http.HTTPError
@@ -156,7 +156,7 @@ func (s *Server) listCartsHandler(w http.ResponseWriter, r *http.Request) {
 // @Failure      500          {object}    http.HTTPError
 // @Router       /carts/{id}  [post]
 func (s *Server) postCartsHandler(w http.ResponseWriter, r *http.Request) {
-	input := domain.CartsCreate{}
+	input := domain.CartCreate{}
 	err := FromJSON(w, r, &input)
 	if err != nil {
 		Error(w, r, err, http.StatusInternalServerError)
@@ -182,7 +182,7 @@ func (s *Server) postCartsHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = ToJSON(w, domain.WrapCarts{Carts: cart}, http.StatusCreated)
+	err = ToJSON(w, domain.WrapCart{Cart: cart}, http.StatusCreated)
 	if err != nil {
 		Error(w, r, err, http.StatusInternalServerError)
 	}
@@ -193,8 +193,8 @@ func (s *Server) postCartsHandler(w http.ResponseWriter, r *http.Request) {
 // @Security     Bearer
 // @Produce      json
 // @Accept       json
-// @Param        cart         body        domain.CartsUpdate true "Update carts"
-// @Success      200          {array}     domain.WrapCarts
+// @Param        cart         body        domain.CartUpdate true "Update cart"
+// @Success      200          {array}     domain.WrapCart
 // @Failure      400          {object}    http.HTTPError
 // @Failure      403          {object}    http.HTTPError
 // @Failure      413          {object}    http.HTTPError
@@ -207,7 +207,7 @@ func (s *Server) updateCartshandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	input := domain.CartsUpdate{}
+	input := domain.CartUpdate{}
 	err = FromJSON(w, r, &input)
 	if err != nil {
 		Error(w, r, err, http.StatusInternalServerError)
@@ -246,7 +246,7 @@ func (s *Server) updateCartshandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = ToJSON(w, domain.WrapCarts{Carts: cart}, http.StatusOK)
+	err = ToJSON(w, domain.WrapCart{Cart: cart}, http.StatusOK)
 	if err != nil {
 		Error(w, r, err, http.StatusInternalServerError)
 	}
@@ -257,7 +257,7 @@ func (s *Server) updateCartshandler(w http.ResponseWriter, r *http.Request) {
 // @Tags 		 Carts
 // @Security     Bearer
 // @Param        id           path        int  true "cart ID"
-// @Success      200          {array}     domain.WrapCarts
+// @Success      200          {array}     domain.WrapCart
 // @Failure      400          {object}    http.HTTPError
 // @Failure      403          {object}    http.HTTPError
 // @Failure      404          {object}    http.HTTPError
