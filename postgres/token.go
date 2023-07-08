@@ -53,8 +53,9 @@ func (t TokenStore) Create(ctx context.Context, token domain.Token) error {
 	return nil
 }
 
-// GetUser get user by token and returns store.ErrNoRows on expired tokens.
-func (t TokenStore) GetUser(ctx context.Context, plainToken string) (domain.User, error) {
+// GetUserID get user by token and returns store.ErrNoRows on expired tokens.
+func (t TokenStore) GetUserID(ctx context.Context, plainToken string) (int, error) {
+	// TODO: create a struct for returned values
 	query := `
 	SELECT id, email, password_hash FROM users
 	INNER JOIN tokens ON users.id = tokens.user_id
@@ -70,16 +71,16 @@ func (t TokenStore) GetUser(ctx context.Context, plainToken string) (domain.User
 
 	rows, err := t.db.Query(ctx, query, args)
 	if err != nil {
-		return domain.User{}, err
+		return 0, err
 	}
 
 	user, err := pgx.CollectOneRow(rows, pgx.RowToStructByName[domain.User])
 	switch {
 	case err != nil:
-		return domain.User{}, fmt.Errorf("failed to query user: %v", err)
+		return 0, fmt.Errorf("failed to query user: %v", err)
 	case user.ID == 0:
-		return domain.User{}, sql.ErrNoRows
+		return 0, sql.ErrNoRows
 	}
 
-	return user, nil
+	return user.ID, nil
 }

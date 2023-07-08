@@ -24,7 +24,7 @@ type Token struct {
 // TokenService represents a service for managing tokens.
 type TokenService interface {
 	Create(ctx context.Context, token Token) error
-	GetUser(ctx context.Context, hashedToken string) (User, error)
+	GetUserID(ctx context.Context, hashedToken string) (int, error)
 }
 
 // GenerateToken returns generated token.

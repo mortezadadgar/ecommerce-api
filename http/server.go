@@ -219,7 +219,7 @@ func (s *Server) authentication(next http.Handler) http.Handler {
 			return
 		}
 
-		user, err := s.TokensStore.GetUser(r.Context(), plainToken)
+		user, err := s.TokensStore.GetUserID(r.Context(), plainToken)
 		if err != nil {
 			if errors.Is(err, sql.ErrNoRows) {
 				Error(w, r, err, http.StatusInternalServerError)
@@ -227,9 +227,6 @@ func (s *Server) authentication(next http.Handler) http.Handler {
 			next.ServeHTTP(w, r)
 			return
 		}
-
-		// HACK: no need for hashed password being in context.
-		user.Password = []byte("")
 
 		r = r.WithContext(newUserContext(r.Context(), user))
 
