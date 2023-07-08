@@ -35,7 +35,7 @@ func (c CategoryStore) Create(ctx context.Context, category *domain.Category) er
 	query := `
 	 INSERT INTO categories(name, description)
 	 VALUES(@name, @description)
-	 RETURNING id, created_at, updated_at
+	 RETURNING id
 	`
 
 	args := pgx.NamedArgs{
@@ -43,11 +43,7 @@ func (c CategoryStore) Create(ctx context.Context, category *domain.Category) er
 		"description": &category.Description,
 	}
 
-	err = tx.QueryRow(ctx, query, args).Scan(
-		&category.ID,
-		&category.CreatedAt,
-		&category.UpdatedAt,
-	)
+	err = tx.QueryRow(ctx, query, args).Scan(&category.ID)
 	if err != nil {
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) {
@@ -128,7 +124,6 @@ func (c CategoryStore) Update(ctx context.Context, category *domain.Category) er
 	UPDATE categories
 	SET name = @name, description = @description, updated_at = NOW()
 	WHERE id = @id
-	RETURNING updated_at
 	`
 
 	args := pgx.NamedArgs{
@@ -137,7 +132,7 @@ func (c CategoryStore) Update(ctx context.Context, category *domain.Category) er
 		"id":          &category.ID,
 	}
 
-	err = tx.QueryRow(ctx, query, args).Scan(&category.UpdatedAt)
+	_, err = tx.Exec(ctx, query, args)
 	if err != nil {
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) {

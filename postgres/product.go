@@ -35,7 +35,7 @@ func (p ProductStore) Create(ctx context.Context, product *domain.Product) error
 	query := `
 	 INSERT INTO products(name, description, category, price, quantity)
 	 VALUES(@name, @description, @category, @price, @quantity)
-	 RETURNING id, created_at, updated_at
+	 RETURNING id
 	`
 
 	args := pgx.NamedArgs{
@@ -46,11 +46,7 @@ func (p ProductStore) Create(ctx context.Context, product *domain.Product) error
 		"quantity":    &product.Quantity,
 	}
 
-	err = tx.QueryRow(ctx, query, args).Scan(
-		&product.ID,
-		&product.CreatedAt,
-		&product.UpdatedAt,
-	)
+	err = tx.QueryRow(ctx, query, args).Scan(&product.ID)
 	if err != nil {
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) {
@@ -135,7 +131,6 @@ func (p ProductStore) Update(ctx context.Context, product *domain.Product) error
 	UPDATE products
 	SET name = @name, description = @description, category = @category, price = @price, quantity = @quantity, updated_at = NOW()
 	WHERE id = @id
-	RETURNING updated_at
 	`
 
 	args := pgx.NamedArgs{
@@ -147,7 +142,7 @@ func (p ProductStore) Update(ctx context.Context, product *domain.Product) error
 		"id":          &product.ID,
 	}
 
-	err = tx.QueryRow(ctx, query, args).Scan(&product.UpdatedAt)
+	_, err = tx.Exec(ctx, query, args)
 	if err != nil {
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) {
