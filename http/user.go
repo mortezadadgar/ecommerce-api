@@ -18,15 +18,15 @@ import (
 // or is not provided.
 var ErrUnauthorizedAccess = errors.New("unauthorized access")
 
-func (s *Server) registerUsersRoutes(r *chi.Mux) {
-	r.Route("/auth", func(r chi.Router) {
+func (s *Server) registerUsersRoutes() {
+	s.Route("/auth", func(r chi.Router) {
 		r.Post("/login", s.loginAuthHandler)
 		// sign_up
 		// log_out
 		// forget_password
 	})
 
-	r.With(requireAuth).Route("/users", func(r chi.Router) {
+	s.With(requireAuth).Route("/users", func(r chi.Router) {
 		r.Get("/{id}", s.getUserHandler)
 		r.Get("/", s.listUsersHandler)
 		r.Post("/", s.createUserHandler)

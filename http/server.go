@@ -42,9 +42,11 @@ type Server struct {
 	CategoriesStore domain.CategoryService
 	TokensStore     domain.TokenService
 	CartsStore      domain.CartService
+	SearchStore     domain.Searcher
 	store           Store
 
 	*http.Server
+	*chi.Mux
 }
 
 // ErrNotFound returned when a resource is not found.
@@ -55,8 +57,6 @@ var ErrMaxBytes = errors.New("exceeded maximum of 1M request body size")
 
 // ErrInvalidQuery returned when a invalid url query is being used.
 var ErrInvalidQuery = errors.New("invalid url query")
-
-const maxBytesRead = 1_048_576
 
 // Store used for common interaction with database from server.
 type Store interface {
@@ -72,43 +72,40 @@ func New(store Store) *Server {
 			WriteTimeout: 10 * time.Second,
 		},
 
+		Mux: chi.NewMux(),
+
 		store: store,
 	}
 
-	r := chi.NewMux()
+	s.Use(middleware.Logger)
+	s.Use(middleware.Recoverer)
+	s.Use(middleware.StripSlashes)
+	s.Use(middleware.Timeout(5 * time.Second))
+	s.Use(s.authentication)
 
-	r.Use(middleware.Logger)
-	r.Use(middleware.Recoverer)
-	r.Use(middleware.StripSlashes)
-	r.Use(middleware.Timeout(5 * time.Second))
-	r.Use(middleware.SetHeader("Content-type", "application/json"))
-	r.Use(s.authentication)
+	s.registerUsersRoutes()
+	s.registerProductsRoutes()
+	s.registerCategoriesRoutes()
+	s.registerCartsRoutes()
+	s.registerSearchRoutes()
 
-	s.registerUsersRoutes(r)
-	s.registerProductsRoutes(r)
-	s.registerCategoriesRoutes(r)
-	s.registerCartsRoutes(r)
-	// search in products and categories
-	// orders
-	// cart
-
-	r.Get("/healthcheck", s.healthHandler)
-	r.NotFound(s.notFoundHandler)
-	r.MethodNotAllowed(s.methodNotAllowdHandler)
+	s.Get("/healthcheck", s.healthHandler)
+	s.NotFound(s.notFoundHandler)
+	s.MethodNotAllowed(s.methodNotAllowdHandler)
 
 	fs := http.FileServer(http.Dir("./swagger"))
-	r.With(requireAuth).Handle("/swagger/swagger.json", http.StripPrefix("/swagger", fs))
+	s.With(requireAuth).Handle("/swagger/swagger.json", http.StripPrefix("/swagger", fs))
 
-	r.With(requireAuth).Get("/docs/*", httpSwagger.Handler(
+	s.With(requireAuth).Get("/docs/*", httpSwagger.Handler(
 		httpSwagger.URL("/swagger/swagger.json"),
 		httpSwagger.UIConfig(map[string]string{
 			"defaultModelsExpandDepth": "-1",
 		}),
 	))
 
-	r.Handle("/docs", http.RedirectHandler("/docs/index.html", http.StatusMovedPermanently))
+	s.Handle("/docs", http.RedirectHandler("/docs/index.html", http.StatusMovedPermanently))
 
-	s.Handler = r
+	s.Handler = s.Mux
 
 	return &s
 }
@@ -168,6 +165,8 @@ func (s *Server) methodNotAllowdHandler(w http.ResponseWriter, r *http.Request) 
 	Error(w, r, fmt.Errorf("the requested method not allowed"), http.StatusMethodNotAllowed)
 }
 
+const maxBytesRead = 1_048_576
+
 // FromJSON decodes the giving struct.
 //
 // caller must pass v as pointer.
@@ -191,6 +190,7 @@ func FromJSON(w http.ResponseWriter, r *http.Request, v any) error {
 
 // ToJSON encodes to giving strcut.
 func ToJSON(w http.ResponseWriter, v any, code int) error {
+	w.Header().Set("Content-type", "application/json")
 	w.WriteHeader(code)
 	return json.NewEncoder(w).Encode(v)
 }

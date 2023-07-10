@@ -10,8 +10,8 @@ import (
 	"github.com/mortezadadgar/ecommerce-api/store"
 )
 
-func (s *Server) registerCartsRoutes(r *chi.Mux) {
-	r.Route("/carts", func(r chi.Router) {
+func (s *Server) registerCartsRoutes() {
+	s.Route("/carts", func(r chi.Router) {
 		r.Get("/", s.listCartsHandler)
 		r.Get("/{id}", s.getCartsHandler)
 		r.Post("/", s.postCartsHandler)

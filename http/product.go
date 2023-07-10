@@ -11,8 +11,8 @@ import (
 	"github.com/mortezadadgar/ecommerce-api/store"
 )
 
-func (s *Server) registerProductsRoutes(r *chi.Mux) {
-	r.Route("/products", func(r chi.Router) {
+func (s *Server) registerProductsRoutes() {
+	s.Route("/products", func(r chi.Router) {
 		r.Get("/{id}", s.getProductHandler)
 		r.Get("/", s.listProductsHandler)
 		r.With(requireAuth).Post("/", s.createProductHandler)
@@ -20,7 +20,6 @@ func (s *Server) registerProductsRoutes(r *chi.Mux) {
 		r.With(requireAuth).Delete("/{id}", s.deleteProductHandler)
 		// bulk inserts data to db
 	})
-
 }
 
 // @Summary      Get product by id

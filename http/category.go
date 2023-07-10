@@ -11,8 +11,8 @@ import (
 	"github.com/mortezadadgar/ecommerce-api/store"
 )
 
-func (s *Server) registerCategoriesRoutes(r *chi.Mux) {
-	r.Route("/categories", func(r chi.Router) {
+func (s *Server) registerCategoriesRoutes() {
+	s.Route("/categories", func(r chi.Router) {
 		r.Get("/{id}", s.getCategoryHandler)
 		r.Get("/", s.listCategoriesHandler)
 		r.With(requireAuth).Post("/", s.createCategoryHandler)

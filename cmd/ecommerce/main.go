@@ -30,6 +30,7 @@ func main() {
 	server.CategoriesStore = postgres.NewCategoryStore(pg.DB)
 	server.TokensStore = postgres.NewTokenStore(pg.DB)
 	server.CartsStore = postgres.NewCartStore(pg.DB)
+	server.SearchStore = postgres.NewSearchStore(pg.DB)
 
 	server.Start()
 
