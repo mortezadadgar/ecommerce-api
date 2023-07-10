@@ -2,16 +2,10 @@ package postgres
 
 import (
 	"context"
-	"database/sql"
-	"errors"
-	"fmt"
 
-	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/mortezadadgar/ecommerce-api/domain"
-	"github.com/mortezadadgar/ecommerce-api/store"
 )
 
 // TokenStore represents tokens database.
@@ -24,7 +18,7 @@ func NewTokenStore(db *pgxpool.Pool) TokenStore {
 	return TokenStore{db: db}
 }
 
-// Create creates a new token in store.
+// Create creates a new token in database.
 func (t TokenStore) Create(ctx context.Context, token domain.Token) error {
 	query := `
 	INSERT INTO tokens(hashed, user_id, expiry)
@@ -39,21 +33,13 @@ func (t TokenStore) Create(ctx context.Context, token domain.Token) error {
 
 	_, err := t.db.Exec(ctx, query, args)
 	if err != nil {
-		var pgErr *pgconn.PgError
-		if errors.As(err, &pgErr) {
-			switch pgErr.Code {
-			case pgerrcode.ForeignKeyViolation:
-				return store.ErrForeinKeyViolation
-			}
-		}
-
-		return fmt.Errorf("failed to insert into tokens: %v", err)
+		return FormatError(err)
 	}
 
 	return nil
 }
 
-// GetUserID get user by token and returns store.ErrNoRows on expired tokens.
+// GetUserID get user by token and return ErrNoRows on expired tokens.
 func (t TokenStore) GetUserID(ctx context.Context, plainToken string) (int, error) {
 	// TODO: create a struct for returned values
 	query := `
@@ -75,11 +61,12 @@ func (t TokenStore) GetUserID(ctx context.Context, plainToken string) (int, erro
 	}
 
 	user, err := pgx.CollectOneRow(rows, pgx.RowToStructByName[domain.User])
-	switch {
-	case err != nil:
-		return 0, fmt.Errorf("failed to query user: %v", err)
-	case user.ID == 0:
-		return 0, sql.ErrNoRows
+	if err != nil {
+		return 0, FormatError(err)
+	}
+
+	if user.ID == 0 {
+		return 0, domain.Errorf(domain.ENOTFOUND, "requested user by token not found")
 	}
 
 	return user.ID, nil

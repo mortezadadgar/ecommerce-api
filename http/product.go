@@ -1,14 +1,12 @@
 package http
 
 import (
-	"database/sql"
 	"fmt"
 	"net/http"
 	"strconv"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/mortezadadgar/ecommerce-api/domain"
-	"github.com/mortezadadgar/ecommerce-api/store"
 )
 
 func (s *Server) registerProductsRoutes() {
@@ -27,32 +25,26 @@ func (s *Server) registerProductsRoutes() {
 // @Produce      json
 // @Param        id             path        int  true "Product ID"
 // @Success      200            {array}     domain.WrapProduct
-// @Failure      400            {object}    http.HTTPError
-// @Failure      404            {object}    http.HTTPError
-// @Failure      500            {object}    http.HTTPError
+// @Failure      400            {object}    domain.Error
+// @Failure      404            {object}    domain.Error
+// @Failure      500            {object}    domain.Error
 // @Router       /products/{id} [get]
 func (s *Server) getProductHandler(w http.ResponseWriter, r *http.Request) {
 	ID, err := strconv.Atoi(chi.URLParam(r, "id"))
 	if err != nil {
-		Error(w, r, ErrInvalidQuery, http.StatusBadRequest)
+		ErrorInvalidQuery(w, r)
 		return
 	}
 
 	product, err := s.ProductsStore.GetByID(r.Context(), ID)
 	if err != nil {
-		switch err {
-		case sql.ErrNoRows:
-			Error(w, r, ErrNotFound, http.StatusNotFound)
-		default:
-			Error(w, r, err, http.StatusInternalServerError)
-		}
-
+		Error(w, r, err)
 		return
 	}
 
 	err = ToJSON(w, domain.WrapProduct{Product: product}, http.StatusOK)
 	if err != nil {
-		Error(w, r, err, http.StatusInternalServerError)
+		Error(w, r, err)
 	}
 }
 
@@ -64,20 +56,20 @@ func (s *Server) getProductHandler(w http.ResponseWriter, r *http.Request) {
 // @Param        category     query       string  false "List by category"
 // @Param        sort         query       string  false "Sort by a column"
 // @Success      200          {array}     domain.WrapProductList
-// @Failure      400          {object}    http.HTTPError
-// @Failure      404          {object}    http.HTTPError
-// @Failure      500          {object}    http.HTTPError
+// @Failure      400          {object}    domain.Error
+// @Failure      404          {object}    domain.Error
+// @Failure      500          {object}    domain.Error
 // @Router       /products/   [get]
 func (s *Server) listProductsHandler(w http.ResponseWriter, r *http.Request) {
 	limit, err := ParseIntQuery(r, "limit")
 	if err != nil {
-		Error(w, r, ErrInvalidQuery, http.StatusBadRequest)
+		ErrorInvalidQuery(w, r)
 		return
 	}
 
 	offset, err := ParseIntQuery(r, "offset")
 	if err != nil {
-		Error(w, r, ErrInvalidQuery, http.StatusBadRequest)
+		ErrorInvalidQuery(w, r)
 		return
 	}
 
@@ -91,19 +83,13 @@ func (s *Server) listProductsHandler(w http.ResponseWriter, r *http.Request) {
 
 	products, err := s.ProductsStore.List(r.Context(), filter)
 	if err != nil {
-		switch err {
-		case sql.ErrNoRows, store.ErrInvalidColumn:
-			Error(w, r, ErrNotFound, http.StatusNotFound)
-		default:
-			Error(w, r, err, http.StatusInternalServerError)
-		}
-
+		Error(w, r, err)
 		return
 	}
 
 	err = ToJSON(w, domain.WrapProductList{Products: products}, http.StatusOK)
 	if err != nil {
-		Error(w, r, err, http.StatusInternalServerError)
+		Error(w, r, err)
 	}
 }
 
@@ -114,22 +100,22 @@ func (s *Server) listProductsHandler(w http.ResponseWriter, r *http.Request) {
 // @Accept       json
 // @Param        product          body        domain.ProductCreate true "Create product"
 // @Success      201              {array}     domain.WrapProduct
-// @Failure      400              {object}    http.HTTPError
-// @Failure      403              {object}    http.HTTPError
-// @Failure      413              {object}    http.HTTPError
-// @Failure      500              {object}    http.HTTPError
+// @Failure      400              {object}    domain.Error
+// @Failure      403              {object}    domain.Error
+// @Failure      413              {object}    domain.Error
+// @Failure      500              {object}    domain.Error
 // @Router       /products/{id}   [post]
 func (s *Server) createProductHandler(w http.ResponseWriter, r *http.Request) {
 	input := domain.ProductCreate{}
 	err := FromJSON(w, r, &input)
 	if err != nil {
-		Error(w, r, err, http.StatusInternalServerError)
+		Error(w, r, err)
 		return
 	}
 
 	err = input.Validate()
 	if err != nil {
-		Error(w, r, err, http.StatusBadRequest)
+		Error(w, r, domain.Errorf(domain.EINVALID, err.Error()))
 		return
 	}
 
@@ -137,20 +123,14 @@ func (s *Server) createProductHandler(w http.ResponseWriter, r *http.Request) {
 
 	err = s.ProductsStore.Create(r.Context(), &product)
 	if err != nil {
-		switch err {
-		case store.ErrForeinKeyViolation, store.ErrDuplicatedEntries:
-			Error(w, r, err, http.StatusBadRequest)
-		default:
-			Error(w, r, err, http.StatusInternalServerError)
-		}
-
+		Error(w, r, err)
 		return
 	}
 
 	w.Header().Set("Location", fmt.Sprintf("/products/%d", product.ID))
 	err = ToJSON(w, domain.WrapProduct{Product: product}, http.StatusCreated)
 	if err != nil {
-		Error(w, r, err, http.StatusInternalServerError)
+		Error(w, r, err)
 	}
 }
 
@@ -161,40 +141,34 @@ func (s *Server) createProductHandler(w http.ResponseWriter, r *http.Request) {
 // @Accept       json
 // @Param        product         body        domain.ProductUpdate true "Update product"
 // @Success      200             {array}     domain.WrapProduct
-// @Failure      400             {object}    http.HTTPError
-// @Failure      403             {object}    http.HTTPError
-// @Failure      413             {object}    http.HTTPError
-// @Failure      500             {object}    http.HTTPError
+// @Failure      400             {object}    domain.Error
+// @Failure      403             {object}    domain.Error
+// @Failure      413             {object}    domain.Error
+// @Failure      500             {object}    domain.Error
 // @Router       /products/{id}  [patch]
 func (s *Server) updateProductHandler(w http.ResponseWriter, r *http.Request) {
 	ID, err := strconv.Atoi(chi.URLParam(r, "id"))
 	if err != nil {
-		Error(w, r, ErrInvalidQuery, http.StatusBadRequest)
+		ErrorInvalidQuery(w, r)
 		return
 	}
 
 	input := domain.ProductUpdate{}
 	err = FromJSON(w, r, &input)
 	if err != nil {
-		Error(w, r, err, http.StatusInternalServerError)
+		Error(w, r, err)
 		return
 	}
 
 	err = input.Validate()
 	if err != nil {
-		Error(w, r, err, http.StatusBadRequest)
+		Error(w, r, domain.Errorf(domain.EINVALID, err.Error()))
 		return
 	}
 
 	product, err := s.ProductsStore.GetByID(r.Context(), ID)
 	if err != nil {
-		switch err {
-		case sql.ErrNoRows:
-			Error(w, r, ErrNotFound, http.StatusNotFound)
-		default:
-			Error(w, r, err, http.StatusInternalServerError)
-		}
-
+		Error(w, r, err)
 		return
 	}
 
@@ -202,19 +176,13 @@ func (s *Server) updateProductHandler(w http.ResponseWriter, r *http.Request) {
 
 	err = s.ProductsStore.Update(r.Context(), &product)
 	if err != nil {
-		switch err {
-		case store.ErrForeinKeyViolation, store.ErrDuplicatedEntries:
-			Error(w, r, err, http.StatusBadRequest)
-		default:
-			Error(w, r, err, http.StatusInternalServerError)
-		}
-
+		Error(w, r, err)
 		return
 	}
 
 	err = ToJSON(w, domain.WrapProduct{Product: product}, http.StatusOK)
 	if err != nil {
-		Error(w, r, err, http.StatusInternalServerError)
+		Error(w, r, err)
 	}
 }
 
@@ -223,25 +191,20 @@ func (s *Server) updateProductHandler(w http.ResponseWriter, r *http.Request) {
 // @Security     Bearer
 // @Param        id             path        int  true "Product ID"
 // @Success      200
-// @Failure      400            {object}    http.HTTPError
-// @Failure      403            {object}    http.HTTPError
-// @Failure      404            {object}    http.HTTPError
-// @Failure      500            {object}    http.HTTPError
+// @Failure      400            {object}    domain.Error
+// @Failure      403            {object}    domain.Error
+// @Failure      404            {object}    domain.Error
+// @Failure      500            {object}    domain.Error
 // @Router       /products/{id} [delete]
 func (s *Server) deleteProductHandler(w http.ResponseWriter, r *http.Request) {
 	ID, err := strconv.Atoi(chi.URLParam(r, "id"))
 	if err != nil {
-		Error(w, r, ErrInvalidQuery, http.StatusBadRequest)
+		Error(w, r, domain.Errorf(domain.EINVALID, err.Error()))
 		return
 	}
 
 	err = s.ProductsStore.Delete(r.Context(), ID)
 	if err != nil {
-		switch err {
-		case sql.ErrNoRows:
-			Error(w, r, ErrNotFound, http.StatusNotFound)
-		default:
-			Error(w, r, err, http.StatusInternalServerError)
-		}
+		Error(w, r, err)
 	}
 }

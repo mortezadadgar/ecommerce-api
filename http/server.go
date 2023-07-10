@@ -49,15 +49,6 @@ type Server struct {
 	*chi.Mux
 }
 
-// ErrNotFound returned when a resource is not found.
-var ErrNotFound = errors.New("the requested resource could not be found")
-
-// ErrMaxBytes returned when the maximum request body size is reached.
-var ErrMaxBytes = errors.New("exceeded maximum of 1M request body size")
-
-// ErrInvalidQuery returned when a invalid url query is being used.
-var ErrInvalidQuery = errors.New("invalid url query")
-
 // Store used for common interaction with database from server.
 type Store interface {
 	Close() error
@@ -153,37 +144,37 @@ func (s *Server) healthHandler(w http.ResponseWriter, r *http.Request) {
 
 	err := ToJSON(w, h, http.StatusOK)
 	if err != nil {
-		Error(w, r, err, http.StatusInternalServerError)
+		Error(w, r, err)
 	}
 }
 
 func (s *Server) notFoundHandler(w http.ResponseWriter, r *http.Request) {
-	Error(w, r, fmt.Errorf("the requested url not found"), http.StatusNotFound)
+	Error(w, r, domain.Errorf(domain.ENOTFOUND, "the requested url not found"))
 }
 
 func (s *Server) methodNotAllowdHandler(w http.ResponseWriter, r *http.Request) {
-	Error(w, r, fmt.Errorf("the requested method not allowed"), http.StatusMethodNotAllowed)
+	Error(w, r, domain.Errorf(domain.EINVALID, "the requested method not allowed"))
 }
 
-const maxBytesRead = 1_048_576
+const maxBytesBodyRead = 1_048_576
 
 // FromJSON decodes the giving struct.
 //
 // caller must pass v as pointer.
 func FromJSON(w http.ResponseWriter, r *http.Request, v any) error {
-	r.Body = http.MaxBytesReader(w, r.Body, maxBytesRead)
+	r.Body = http.MaxBytesReader(w, r.Body, maxBytesBodyRead)
 
 	err := json.NewDecoder(r.Body).Decode(&v)
 	if err != nil {
 		var MaxBytesError *http.MaxBytesError
 		switch {
 		case errors.As(err, &MaxBytesError):
-			return ErrMaxBytes
+			return domain.Errorf(domain.ETOOLARGE,
+				"exceeded maximum of 1M request body size")
 		default:
 			return err
 		}
 	}
-	defer r.Body.Close()
 
 	return nil
 }
@@ -222,7 +213,7 @@ func (s *Server) authentication(next http.Handler) http.Handler {
 		user, err := s.TokensStore.GetUserID(r.Context(), plainToken)
 		if err != nil {
 			if errors.Is(err, sql.ErrNoRows) {
-				Error(w, r, err, http.StatusInternalServerError)
+				Error(w, r, err)
 			}
 			next.ServeHTTP(w, r)
 			return
@@ -237,7 +228,7 @@ func (s *Server) authentication(next http.Handler) http.Handler {
 func requireAuth(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if user := userIDFromContext(r.Context()); user == 0 {
-			Error(w, r, ErrUnauthorizedAccess, http.StatusForbidden)
+			Error(w, r, domain.Errorf(domain.EUNAUTHORIZED, "unauthorized access"))
 			return
 		}
 

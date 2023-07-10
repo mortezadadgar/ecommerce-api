@@ -1,11 +1,10 @@
 package http
 
 import (
-	"database/sql"
-	"fmt"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/mortezadadgar/ecommerce-api/domain"
 )
 
 func (s *Server) registerSearchRoutes() {
@@ -17,24 +16,18 @@ func (s *Server) registerSearchRoutes() {
 func (s *Server) searchHandler(w http.ResponseWriter, r *http.Request) {
 	query := r.URL.Query().Get("q")
 	if len(query) == 0 {
-		Error(w, r, fmt.Errorf("search is not supported without query"), http.StatusBadRequest)
+		Error(w, r, domain.Errorf(domain.EINVALID, "search is not supported without query"))
 		return
 	}
 
 	result, err := s.SearchStore.Search(r.Context(), query)
 	if err != nil {
-		switch err {
-		case sql.ErrNoRows:
-			Error(w, r, ErrNotFound, http.StatusNotFound)
-		default:
-			Error(w, r, err, http.StatusInternalServerError)
-		}
-
+		Error(w, r, err)
 		return
 	}
 
 	err = ToJSON(w, result, http.StatusOK)
 	if err != nil {
-		Error(w, r, err, http.StatusInternalServerError)
+		Error(w, r, err)
 	}
 }

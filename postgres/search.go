@@ -2,14 +2,12 @@ package postgres
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 	"log"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/mortezadadgar/ecommerce-api/domain"
-	"github.com/mortezadadgar/ecommerce-api/store"
 )
 
 // SearchStore represents search in database.
@@ -43,7 +41,7 @@ func (s SearchStore) Search(ctx context.Context, query string) (results []domain
 	}
 
 	if len(results) == 0 {
-		return nil, sql.ErrNoRows
+		return nil, domain.Errorf(domain.ENOTFOUND, "requested resource not found")
 	}
 
 	return results, nil
@@ -52,7 +50,7 @@ func (s SearchStore) Search(ctx context.Context, query string) (results []domain
 func fullSearch[T any](ctx context.Context, db *pgxpool.Pool, table string, query string) (results []T, err error) {
 	tx, err := db.Begin(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("%v: %v", store.ErrBeginTransaction, err)
+		return nil, fmt.Errorf("%v: %v", ErrBeginTransaction, err)
 	}
 	defer tx.Rollback(ctx)
 
@@ -77,7 +75,7 @@ func fullSearch[T any](ctx context.Context, db *pgxpool.Pool, table string, quer
 
 	err = tx.Commit(ctx)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%v: %v", ErrCommitTransaction, err)
 	}
 
 	return results, nil

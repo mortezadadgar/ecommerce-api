@@ -2,16 +2,11 @@ package postgres
 
 import (
 	"context"
-	"database/sql"
-	"errors"
 	"fmt"
 
-	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/mortezadadgar/ecommerce-api/domain"
-	"github.com/mortezadadgar/ecommerce-api/store"
 )
 
 // CartStore represents carts database.
@@ -24,11 +19,11 @@ func NewCartStore(db *pgxpool.Pool) CartStore {
 	return CartStore{db: db}
 }
 
-// Create creates a new cart in store.
+// Create creates a new cart in database.
 func (c CartStore) Create(ctx context.Context, cart *domain.Cart) error {
 	tx, err := c.db.Begin(ctx)
 	if err != nil {
-		return fmt.Errorf("%v: %v", store.ErrBeginTransaction, err)
+		return fmt.Errorf("%v: %v", ErrBeginTransaction, err)
 
 	}
 	defer tx.Rollback(ctx)
@@ -47,26 +42,18 @@ func (c CartStore) Create(ctx context.Context, cart *domain.Cart) error {
 
 	err = tx.QueryRow(ctx, query, args).Scan(&cart.ID)
 	if err != nil {
-		var pgErr *pgconn.PgError
-		if errors.As(err, &pgErr) {
-			switch pgErr.Code {
-			case pgerrcode.ForeignKeyViolation:
-				return store.ErrForeinKeyViolation
-			}
-		}
-
-		return fmt.Errorf("failed to insert into carts: %v", err)
+		return FormatError(err)
 	}
 
 	err = tx.Commit(ctx)
 	if err != nil {
-		return fmt.Errorf("%v: %v", store.ErrCommitTransaction, err)
+		return fmt.Errorf("%v: %v", ErrCommitTransaction, err)
 	}
 
 	return nil
 }
 
-// GetByUser get user's cart by id from store.
+// GetByUser get user's cart by id from database.
 func (c CartStore) GetByUser(ctx context.Context, userID int) ([]domain.Cart, error) {
 	cart, err := c.List(ctx, domain.CartFilter{UserID: userID})
 	if err != nil {
@@ -76,7 +63,7 @@ func (c CartStore) GetByUser(ctx context.Context, userID int) ([]domain.Cart, er
 	return cart, nil
 }
 
-// GetByID get cart by id from store.
+// GetByID get cart by id from database.
 func (c CartStore) GetByID(ctx context.Context, ID int) (domain.Cart, error) {
 	cart, err := c.List(ctx, domain.CartFilter{ID: ID})
 	if err != nil {
@@ -90,17 +77,17 @@ func (c CartStore) GetByID(ctx context.Context, ID int) (domain.Cart, error) {
 func (c CartStore) List(ctx context.Context, filter domain.CartFilter) ([]domain.Cart, error) {
 	tx, err := c.db.Begin(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("%v: %v", store.ErrBeginTransaction, err)
+		return nil, fmt.Errorf("%v: %v", ErrBeginTransaction, err)
 	}
 	defer tx.Rollback(ctx)
 
 	query := `
 	SELECT * FROM carts
 	WHERE 1=1
-	` + store.FormatSort(filter.Sort) + `
-	` + store.FormatAndIntOp("id", filter.ID) + `
-	` + store.FormatAndIntOp("user_id", filter.UserID) + `
-	` + store.FormatLimitOffset(filter.Limit, filter.Offset) + `
+	` + FormatSort(filter.Sort) + `
+	` + FormatAndIntOp("id", filter.ID) + `
+	` + FormatAndIntOp("user_id", filter.UserID) + `
+	` + FormatLimitOffset(filter.Limit, filter.Offset) + `
 	`
 
 	rows, err := tx.Query(ctx, query)
@@ -114,22 +101,22 @@ func (c CartStore) List(ctx context.Context, filter domain.CartFilter) ([]domain
 	}
 
 	if len(carts) == 0 {
-		return nil, sql.ErrNoRows
+		return nil, domain.Errorf(domain.ENOTFOUND, "there is no cart to list")
 	}
 
 	err = tx.Commit(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("%v: %v", store.ErrCommitTransaction, err)
+		return nil, fmt.Errorf("%v: %v", ErrCommitTransaction, err)
 	}
 
 	return carts, nil
 }
 
-// Update updates a cart by id in store.
+// Update updates a cart by id in database.
 func (c CartStore) Update(ctx context.Context, cart *domain.Cart) error {
 	tx, err := c.db.Begin(ctx)
 	if err != nil {
-		return fmt.Errorf("%v: %v", store.ErrBeginTransaction, err)
+		return fmt.Errorf("%v: %v", ErrBeginTransaction, err)
 	}
 	defer tx.Rollback(ctx)
 
@@ -147,32 +134,22 @@ func (c CartStore) Update(ctx context.Context, cart *domain.Cart) error {
 
 	_, err = tx.Exec(ctx, query, args)
 	if err != nil {
-		var pgErr *pgconn.PgError
-		if errors.As(err, &pgErr) {
-			switch pgErr.Code {
-			case pgerrcode.UniqueViolation:
-				return store.ErrDuplicatedEntries
-			case pgerrcode.ForeignKeyViolation:
-				return store.ErrForeinKeyViolation
-			}
-		}
-
-		return fmt.Errorf("failed to update cart: %v", err)
+		return FormatError(err)
 	}
 
 	err = tx.Commit(ctx)
 	if err != nil {
-		return fmt.Errorf("%v: %v", store.ErrCommitTransaction, err)
+		return fmt.Errorf("%v: %v", ErrCommitTransaction, err)
 	}
 
 	return nil
 }
 
-// Delete deletes a cart by id from store.
+// Delete deletes a cart by id from database.
 func (c CartStore) Delete(ctx context.Context, ID int) error {
 	tx, err := c.db.Begin(ctx)
 	if err != nil {
-		return fmt.Errorf("%v: %v", store.ErrBeginTransaction, err)
+		return fmt.Errorf("%v: %v", ErrBeginTransaction, err)
 	}
 	defer tx.Rollback(ctx)
 
@@ -191,12 +168,12 @@ func (c CartStore) Delete(ctx context.Context, ID int) error {
 	}
 
 	if rows := result.RowsAffected(); rows != 1 {
-		return sql.ErrNoRows
+		return domain.Errorf(domain.ENOTFOUND, "requested cart not found")
 	}
 
 	err = tx.Commit(ctx)
 	if err != nil {
-		return fmt.Errorf("%v: %v", store.ErrCommitTransaction, err)
+		return fmt.Errorf("%v: %v", ErrCommitTransaction, err)
 	}
 
 	return nil

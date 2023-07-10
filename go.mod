@@ -6,7 +6,6 @@ require github.com/go-chi/chi/v5 v5.0.8
 
 require (
 	github.com/go-playground/validator/v10 v10.14.1
-	github.com/jackc/pgerrcode v0.0.0-20220416144525-469b46aa5efa
 	github.com/jackc/pgx/v5 v5.4.1
 	github.com/joho/godotenv v1.5.1
 	github.com/swaggo/http-swagger/example/go-chi v0.0.0-20230327134356-bc837951e6c7

@@ -2,16 +2,11 @@ package postgres
 
 import (
 	"context"
-	"database/sql"
-	"errors"
 	"fmt"
 
-	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/mortezadadgar/ecommerce-api/domain"
-	"github.com/mortezadadgar/ecommerce-api/store"
 )
 
 // UserStore represents users database.
@@ -24,11 +19,11 @@ func NewUserStore(db *pgxpool.Pool) UserStore {
 	return UserStore{db: db}
 }
 
-// Create creates a new user in store.
+// Create creates a new user in database.
 func (u UserStore) Create(ctx context.Context, user *domain.User) error {
 	tx, err := u.db.Begin(ctx)
 	if err != nil {
-		return fmt.Errorf("%v: %v", store.ErrBeginTransaction, err)
+		return fmt.Errorf("%v: %v", ErrBeginTransaction, err)
 	}
 	defer tx.Rollback(ctx)
 
@@ -45,25 +40,18 @@ func (u UserStore) Create(ctx context.Context, user *domain.User) error {
 
 	err = tx.QueryRow(ctx, query, args).Scan(&user.ID)
 	if err != nil {
-		var pgErr *pgconn.PgError
-		if errors.As(err, &pgErr) {
-			if pgErr.Code == pgerrcode.UniqueViolation {
-				return store.ErrDuplicatedEntries
-			}
-		}
-
-		return fmt.Errorf("failed to insert into users: %v", err)
+		return FormatError(err)
 	}
 
 	err = tx.Commit(ctx)
 	if err != nil {
-		return fmt.Errorf("%v: %v", store.ErrCommitTransaction, err)
+		return fmt.Errorf("%v: %v", ErrCommitTransaction, err)
 	}
 
 	return nil
 }
 
-// GetByID get user by id from store.
+// GetByID get user by id from database.
 func (u UserStore) GetByID(ctx context.Context, ID int) (domain.User, error) {
 	user, err := u.List(ctx, domain.UserFilter{ID: ID})
 	if err != nil {
@@ -73,7 +61,7 @@ func (u UserStore) GetByID(ctx context.Context, ID int) (domain.User, error) {
 	return user[0], nil
 }
 
-// GetByEmail get user by email from store.
+// GetByEmail get user by email from database.
 func (u UserStore) GetByEmail(ctx context.Context, email string) (domain.User, error) {
 	user, err := u.List(ctx, domain.UserFilter{Email: email})
 	if err != nil {
@@ -87,17 +75,17 @@ func (u UserStore) GetByEmail(ctx context.Context, email string) (domain.User, e
 func (u UserStore) List(ctx context.Context, filter domain.UserFilter) ([]domain.User, error) {
 	tx, err := u.db.Begin(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("%v: %v", store.ErrBeginTransaction, err)
+		return nil, fmt.Errorf("%v: %v", ErrBeginTransaction, err)
 	}
 	defer tx.Rollback(ctx)
 
 	query := `
 	SELECT id, email, password_hash FROM users
 	WHERE 1=1
-	` + store.FormatAndOp("email", filter.Email) + `
-	` + store.FormatAndIntOp("id", filter.ID) + `
-	` + store.FormatSort(filter.Sort) + `
-	` + store.FormatLimitOffset(filter.Limit, filter.Offset) + `
+	` + FormatAndOp("email", filter.Email) + `
+	` + FormatAndIntOp("id", filter.ID) + `
+	` + FormatSort(filter.Sort) + `
+	` + FormatLimitOffset(filter.Limit, filter.Offset) + `
 	`
 
 	rows, err := tx.Query(ctx, query)
@@ -111,22 +99,22 @@ func (u UserStore) List(ctx context.Context, filter domain.UserFilter) ([]domain
 	}
 
 	if len(users) == 0 {
-		return nil, sql.ErrNoRows
+		return nil, domain.Errorf(domain.ENOTFOUND, "there is no user to list")
 	}
 
 	err = tx.Commit(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("%v: %v", store.ErrCommitTransaction, err)
+		return nil, fmt.Errorf("%v: %v", ErrCommitTransaction, err)
 	}
 
 	return users, nil
 }
 
-// Delete deletes a user by id from store.
+// Delete deletes a user by id from database.
 func (u UserStore) Delete(ctx context.Context, ID int) error {
 	tx, err := u.db.Begin(ctx)
 	if err != nil {
-		return fmt.Errorf("%v: %v", store.ErrBeginTransaction, err)
+		return fmt.Errorf("%v: %v", ErrBeginTransaction, err)
 	}
 	defer tx.Rollback(ctx)
 
@@ -145,12 +133,12 @@ func (u UserStore) Delete(ctx context.Context, ID int) error {
 	}
 
 	if rows := result.RowsAffected(); rows != 1 {
-		return sql.ErrNoRows
+		return domain.Errorf(domain.ENOTFOUND, "requested user not found")
 	}
 
 	err = tx.Commit(ctx)
 	if err != nil {
-		return fmt.Errorf("%v: %v", store.ErrCommitTransaction, err)
+		return fmt.Errorf("%v: %v", ErrCommitTransaction, err)
 	}
 
 	return nil

@@ -2,16 +2,11 @@ package postgres
 
 import (
 	"context"
-	"database/sql"
-	"errors"
 	"fmt"
 
-	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/mortezadadgar/ecommerce-api/domain"
-	"github.com/mortezadadgar/ecommerce-api/store"
 )
 
 // ProductStore represents products database.
@@ -24,14 +19,15 @@ func NewProductStore(db *pgxpool.Pool) ProductStore {
 	return ProductStore{db: db}
 }
 
-// Create creates a new product in store.
+// Create creates a new product in database.
 func (p ProductStore) Create(ctx context.Context, product *domain.Product) error {
 	tx, err := p.db.Begin(ctx)
 	if err != nil {
-		return fmt.Errorf("%v: %v", store.ErrBeginTransaction, err)
+		return fmt.Errorf("%v: %v", ErrBeginTransaction, err)
 	}
 	defer tx.Rollback(ctx)
 
+	fmt.Println("creating products")
 	query := `
 	 INSERT INTO products(name, description, category, price, quantity)
 	 VALUES(@name, @description, @category, @price, @quantity)
@@ -48,28 +44,18 @@ func (p ProductStore) Create(ctx context.Context, product *domain.Product) error
 
 	err = tx.QueryRow(ctx, query, args).Scan(&product.ID)
 	if err != nil {
-		var pgErr *pgconn.PgError
-		if errors.As(err, &pgErr) {
-			switch pgErr.Code {
-			case pgerrcode.UniqueViolation:
-				return store.ErrDuplicatedEntries
-			case pgerrcode.ForeignKeyViolation:
-				return store.ErrForeinKeyViolation
-			}
-		}
-
-		return fmt.Errorf("failed to insert into products: %v", err)
+		return FormatError(err)
 	}
 
 	err = tx.Commit(ctx)
 	if err != nil {
-		return fmt.Errorf("%v: %v", store.ErrCommitTransaction, err)
+		return fmt.Errorf("%v: %v", ErrCommitTransaction, err)
 	}
 
 	return nil
 }
 
-// GetByID get product by id from store.
+// GetByID get product by id from database.
 func (p ProductStore) GetByID(ctx context.Context, ID int) (domain.Product, error) {
 	product, err := p.List(ctx, domain.ProductFilter{ID: ID})
 	if err != nil {
@@ -83,18 +69,18 @@ func (p ProductStore) GetByID(ctx context.Context, ID int) (domain.Product, erro
 func (p ProductStore) List(ctx context.Context, filter domain.ProductFilter) ([]domain.Product, error) {
 	tx, err := p.db.Begin(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("%v: %v", store.ErrBeginTransaction, err)
+		return nil, fmt.Errorf("%v: %v", ErrBeginTransaction, err)
 	}
 	defer tx.Rollback(ctx)
 
 	query := `
 	SELECT * FROM products
 	WHERE 1=1
-	` + store.FormatSort(filter.Sort) + `
-	` + store.FormatAndOp("category", filter.Category) + `
-	` + store.FormatAndOp("name", filter.Name) + `
-	` + store.FormatAndIntOp("id", filter.ID) + `
-	` + store.FormatLimitOffset(filter.Limit, filter.Offset) + `
+	` + FormatSort(filter.Sort) + `
+	` + FormatAndOp("category", filter.Category) + `
+	` + FormatAndOp("name", filter.Name) + `
+	` + FormatAndIntOp("id", filter.ID) + `
+	` + FormatLimitOffset(filter.Limit, filter.Offset) + `
 	`
 
 	rows, err := tx.Query(ctx, query)
@@ -108,22 +94,22 @@ func (p ProductStore) List(ctx context.Context, filter domain.ProductFilter) ([]
 	}
 
 	if len(products) == 0 {
-		return nil, sql.ErrNoRows
+		return nil, domain.Errorf(domain.ENOTFOUND, "requested products not found")
 	}
 
 	err = tx.Commit(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("%v: %v", store.ErrCommitTransaction, err)
+		return nil, fmt.Errorf("%v: %v", ErrCommitTransaction, err)
 	}
 
 	return products, nil
 }
 
-// Update updates a product by id in store.
+// Update updates a product by id in
 func (p ProductStore) Update(ctx context.Context, product *domain.Product) error {
 	tx, err := p.db.Begin(ctx)
 	if err != nil {
-		return fmt.Errorf("%v: %v", store.ErrBeginTransaction, err)
+		return fmt.Errorf("%v: %v", ErrBeginTransaction, err)
 	}
 	defer tx.Rollback(ctx)
 
@@ -144,32 +130,22 @@ func (p ProductStore) Update(ctx context.Context, product *domain.Product) error
 
 	_, err = tx.Exec(ctx, query, args)
 	if err != nil {
-		var pgErr *pgconn.PgError
-		if errors.As(err, &pgErr) {
-			switch pgErr.Code {
-			case pgerrcode.UniqueViolation:
-				return store.ErrDuplicatedEntries
-			case pgerrcode.ForeignKeyViolation:
-				return store.ErrForeinKeyViolation
-			}
-		}
-
-		return fmt.Errorf("failed to update product: %v", err)
+		return FormatError(err)
 	}
 
 	err = tx.Commit(ctx)
 	if err != nil {
-		return fmt.Errorf("%v: %v", store.ErrCommitTransaction, err)
+		return fmt.Errorf("%v: %v", ErrCommitTransaction, err)
 	}
 
 	return nil
 }
 
-// Delete deletes a product by id from store.
+// Delete deletes a product by id from database.
 func (p ProductStore) Delete(ctx context.Context, ID int) error {
 	tx, err := p.db.Begin(ctx)
 	if err != nil {
-		return fmt.Errorf("%v: %v", store.ErrBeginTransaction, err)
+		return fmt.Errorf("%v: %v", ErrBeginTransaction, err)
 	}
 	defer tx.Rollback(ctx)
 
@@ -188,12 +164,12 @@ func (p ProductStore) Delete(ctx context.Context, ID int) error {
 	}
 
 	if rows := result.RowsAffected(); rows != 1 {
-		return sql.ErrNoRows
+		return domain.Errorf(domain.ENOTFOUND, "requested product not found")
 	}
 
 	err = tx.Commit(ctx)
 	if err != nil {
-		return fmt.Errorf("%v: %v", store.ErrCommitTransaction, err)
+		return fmt.Errorf("%v: %v", ErrCommitTransaction, err)
 	}
 
 	return nil
