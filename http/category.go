@@ -1,6 +1,7 @@
 package http
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -9,8 +10,8 @@ import (
 	"github.com/mortezadadgar/ecommerce-api/domain"
 )
 
-func (s *Server) registerCategoriesRoutes() {
-	s.Route("/categories", func(r chi.Router) {
+func (s *Server) registerCategoriesRoutes(r *chi.Mux) {
+	r.Route("/categories", func(r chi.Router) {
 		r.Get("/{id}", s.getCategoryHandler)
 		r.Get("/", s.listCategoriesHandler)
 		r.With(requireAuth).Post("/", s.createCategoryHandler)
@@ -24,9 +25,9 @@ func (s *Server) registerCategoriesRoutes() {
 // @Produce      json
 // @Param        id    path       int  true "Category ID"
 // @Success      200  {array}     domain.WrapCategory
-// @Failure      400  {object}    domain.Error
-// @Failure      404  {object}    domain.Error
-// @Failure      500  {object}    domain.Error
+// @Failure      400  {object}    http.WrapError
+// @Failure      404  {object}    http.WrapError
+// @Failure      500  {object}    http.WrapError
 // @Router       /categories/{id} [get]
 func (s *Server) getCategoryHandler(w http.ResponseWriter, r *http.Request) {
 	ID, err := strconv.Atoi(chi.URLParam(r, "id"))
@@ -37,13 +38,17 @@ func (s *Server) getCategoryHandler(w http.ResponseWriter, r *http.Request) {
 
 	category, err := s.CategoriesStore.GetByID(r.Context(), ID)
 	if err != nil {
-		Error(w, r, err)
+		if errors.Is(err, domain.ErrNoCategoryFound) {
+			Errorf(w, r, http.StatusNotFound, err.Error())
+		} else {
+			Errorf(w, r, http.StatusInternalServerError, err.Error())
+		}
 		return
 	}
 
 	err = ToJSON(w, domain.WrapCategory{Category: category}, http.StatusOK)
 	if err != nil {
-		Error(w, r, err)
+		Errorf(w, r, http.StatusInternalServerError, err.Error())
 	}
 }
 
@@ -54,9 +59,9 @@ func (s *Server) getCategoryHandler(w http.ResponseWriter, r *http.Request) {
 // @Param        name         query       string  false "List by name"
 // @Param        sort         query       string  false "Sort by a column"
 // @Success      200  {array}   domain.WrapCategoryList
-// @Failure      400  {object}  domain.Error
-// @Failure      404  {object}  domain.Error
-// @Failure      500  {object}  domain.Error
+// @Failure      400  {object}  http.WrapError
+// @Failure      404  {object}  http.WrapError
+// @Failure      500  {object}  http.WrapError
 // @Router       /categories/   [get]
 func (s *Server) listCategoriesHandler(w http.ResponseWriter, r *http.Request) {
 	limit, err := ParseIntQuery(r, "limit")
@@ -80,13 +85,17 @@ func (s *Server) listCategoriesHandler(w http.ResponseWriter, r *http.Request) {
 
 	categories, err := s.CategoriesStore.List(r.Context(), filter)
 	if err != nil {
-		Error(w, r, err)
+		if errors.Is(err, domain.ErrNoCategoryFound) {
+			Errorf(w, r, http.StatusNotFound, err.Error())
+		} else {
+			Errorf(w, r, http.StatusInternalServerError, err.Error())
+		}
 		return
 	}
 
 	err = ToJSON(w, domain.WrapCategoryList{Categories: categories}, http.StatusOK)
 	if err != nil {
-		Error(w, r, err)
+		Errorf(w, r, http.StatusInternalServerError, err.Error())
 	}
 }
 
@@ -97,24 +106,24 @@ func (s *Server) listCategoriesHandler(w http.ResponseWriter, r *http.Request) {
 // @Accept       json
 // @Param        category         body        domain.CategoryCreate true "Create category"
 // @Success      201              {array}     domain.WrapCategory
-// @Failure      400              {object}    domain.Error
-// @Failure      403              {object}    domain.Error
-// @Failure      404              {object}    domain.Error
-// @Failure      413              {object}    domain.Error
-// @Failure      500              {object}    domain.Error
+// @Failure      400              {object}    http.WrapError
+// @Failure      403              {object}    http.WrapError
+// @Failure      404              {object}    http.WrapError
+// @Failure      413              {object}    http.WrapError
+// @Failure      500              {object}    http.WrapError
 // @Router       /categories/{id} [post]
 func (s *Server) createCategoryHandler(w http.ResponseWriter, r *http.Request) {
 	input := domain.CategoryCreate{}
 
 	err := FromJSON(w, r, &input)
 	if err != nil {
-		Error(w, r, err)
+		Errorf(w, r, http.StatusBadRequest, err.Error())
 		return
 	}
 
 	err = input.Validate()
 	if err != nil {
-		Error(w, r, domain.Errorf(domain.EINVALID, err.Error()))
+		Errorf(w, r, http.StatusBadRequest, err.Error())
 		return
 	}
 
@@ -122,14 +131,18 @@ func (s *Server) createCategoryHandler(w http.ResponseWriter, r *http.Request) {
 
 	err = s.CategoriesStore.Create(r.Context(), &category)
 	if err != nil {
-		Error(w, r, err)
+		if errors.Is(err, domain.ErrDuplicatedCategory) {
+			Errorf(w, r, http.StatusBadRequest, err.Error())
+		} else {
+			Errorf(w, r, http.StatusInternalServerError, err.Error())
+		}
 		return
 	}
 
 	w.Header().Set("Location", fmt.Sprintf("/products/%d", category.ID))
 	err = ToJSON(w, domain.WrapCategory{Category: category}, http.StatusCreated)
 	if err != nil {
-		Error(w, r, err)
+		Errorf(w, r, http.StatusInternalServerError, err.Error())
 	}
 }
 
@@ -140,10 +153,10 @@ func (s *Server) createCategoryHandler(w http.ResponseWriter, r *http.Request) {
 // @Accept       json
 // @Param        category         body        domain.CategoryUpdate true "Update category"
 // @Success      200              {array}     domain.WrapCategory
-// @Failure      400              {object}    domain.Error
-// @Failure      403              {object}    domain.Error
-// @Failure      413              {object}    domain.Error
-// @Failure      500              {object}    domain.Error
+// @Failure      400              {object}    http.WrapError
+// @Failure      403              {object}    http.WrapError
+// @Failure      413              {object}    http.WrapError
+// @Failure      500              {object}    http.WrapError
 // @Router       /categories/{id} [patch]
 func (s *Server) updateCategoryHandler(w http.ResponseWriter, r *http.Request) {
 	ID, err := strconv.Atoi(chi.URLParam(r, "id"))
@@ -155,19 +168,23 @@ func (s *Server) updateCategoryHandler(w http.ResponseWriter, r *http.Request) {
 	input := domain.CategoryUpdate{}
 	err = FromJSON(w, r, &input)
 	if err != nil {
-		Error(w, r, err)
+		Errorf(w, r, http.StatusBadRequest, err.Error())
 		return
 	}
 
 	err = input.Validate()
 	if err != nil {
-		Error(w, r, domain.Errorf(domain.EINVALID, err.Error()))
+		Errorf(w, r, http.StatusBadRequest, err.Error())
 		return
 	}
 
 	category, err := s.CategoriesStore.GetByID(r.Context(), ID)
 	if err != nil {
-		Error(w, r, err)
+		if errors.Is(err, domain.ErrNoCategoryFound) {
+			Errorf(w, r, http.StatusNotFound, err.Error())
+		} else {
+			Errorf(w, r, http.StatusInternalServerError, err.Error())
+		}
 		return
 	}
 
@@ -175,13 +192,17 @@ func (s *Server) updateCategoryHandler(w http.ResponseWriter, r *http.Request) {
 
 	err = s.CategoriesStore.Update(r.Context(), &category)
 	if err != nil {
-		Error(w, r, err)
+		if errors.Is(err, domain.ErrDuplicatedCategory) {
+			Errorf(w, r, http.StatusBadRequest, err.Error())
+		} else {
+			Errorf(w, r, http.StatusInternalServerError, err.Error())
+		}
 		return
 	}
 
 	err = ToJSON(w, domain.WrapCategory{Category: category}, http.StatusOK)
 	if err != nil {
-		Error(w, r, err)
+		Errorf(w, r, http.StatusInternalServerError, err.Error())
 	}
 }
 
@@ -190,10 +211,10 @@ func (s *Server) updateCategoryHandler(w http.ResponseWriter, r *http.Request) {
 // @Security     Bearer
 // @Param        id           path        int  true "Category ID"
 // @Success      200          {array}     domain.WrapCategory
-// @Failure      400          {object}    domain.Error
-// @Failure      403          {object}    domain.Error
-// @Failure      404          {object}    domain.Error
-// @Failure      500          {object}    domain.Error
+// @Failure      400          {object}    http.WrapError
+// @Failure      403          {object}    http.WrapError
+// @Failure      404          {object}    http.WrapError
+// @Failure      500          {object}    http.WrapError
 // @Router       /categories/{id} [delete]
 func (s *Server) deleteCategoryHandler(w http.ResponseWriter, r *http.Request) {
 	ID, err := strconv.Atoi(chi.URLParam(r, "id"))
@@ -204,6 +225,10 @@ func (s *Server) deleteCategoryHandler(w http.ResponseWriter, r *http.Request) {
 
 	err = s.CategoriesStore.Delete(r.Context(), ID)
 	if err != nil {
-		Error(w, r, err)
+		if errors.Is(err, domain.ErrNoCategoryFound) {
+			Errorf(w, r, http.StatusNotFound, err.Error())
+		} else {
+			Errorf(w, r, http.StatusInternalServerError, err.Error())
+		}
 	}
 }

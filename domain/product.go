@@ -2,9 +2,22 @@ package domain
 
 import (
 	"context"
+	"errors"
 	"time"
+)
 
-	"github.com/go-playground/validator/v10"
+var (
+	ErrInvalidProductCategory = errors.New("invalid category")
+	ErrDuplicatedProduct      = errors.New("duplicated product")
+	ErrNoProductsFound        = errors.New("products not found")
+	ErrProductConflict        = errors.New("update conflict error")
+
+	errProductNameRequired        = errors.New("name is required")
+	errProductDescriptionRequired = errors.New("description is required")
+	errQuantityRequired           = errors.New("quantity is required")
+	errPriceRequired              = errors.New("price is required")
+	errCategoryIDRequired         = errors.New("CategoryID is required")
+	errVersionRequired            = errors.New("version is required")
 )
 
 // WrapProduct wraps products for user representation.
@@ -22,36 +35,37 @@ type Product struct {
 	ID          int       `json:"id"`
 	Name        string    `json:"name"`
 	Description string    `json:"description"`
-	Category    string    `json:"category"`
+	CategoryID  int       `json:"category_id" db:"category_id"`
 	Price       int       `json:"price"`
 	Quantity    int       `json:"quantity"`
 	CreatedAt   time.Time `json:"-" db:"created_at"`
 	UpdatedAt   time.Time `json:"-" db:"updated_at"`
+	Version     int       `json:"version"`
 }
 
 // ProductCreate represents products model for POST requests.
 type ProductCreate struct {
-	Name        string `json:"name" validate:"required"`
-	Description string `json:"description" validate:"required"`
-	Category    string `json:"category" validate:"required"`
-	Price       int    `json:"price" validate:"required"`
-	Quantity    int    `json:"quantity" validate:"required"`
+	Name        string `json:"name"`
+	Description string `json:"description"`
+	CategoryID  int    `json:"category_id"`
+	Price       int    `json:"price"`
+	Quantity    int    `json:"quantity"`
 }
 
 // ProductUpdate represents products model for PATCH requests.
 type ProductUpdate struct {
-	Name        *string `json:"name" validate:"omitempty,required"`
-	Description *string `json:"description" validate:"omitempty,required"`
-	Category    *string `json:"category" validate:"omitempty,required"`
-	Price       *int    `json:"price" validate:"omitempty,required"`
-	Quantity    *int    `json:"quantity" validate:"omitempty,required"`
+	Name        *string `json:"name"`
+	Description *string `json:"description"`
+	CategoryID  *int    `json:"category_id"`
+	Price       *int    `json:"price"`
+	Quantity    *int    `json:"quantity"`
+	Version     int     `json:"version"`
 }
 
 // ProductFilter represents filters passed to List.
 type ProductFilter struct {
-	ID       int    `json:"id"`
-	Category string `json:"category"`
-	Name     string `json:"name"`
+	ID         int `json:"id"`
+	CategoryID int `json:"category"`
 
 	Limit  int    `json:"limit"`
 	Offset int    `json:"offset"`
@@ -67,10 +81,21 @@ type ProductService interface {
 	List(ctx context.Context, filter ProductFilter) ([]Product, error)
 }
 
-// Validate validates create products.
+// Validate validates POST requests model.
 func (p ProductCreate) Validate() error {
-	v := validator.New()
-	return v.Struct(p)
+	switch {
+	case p.Name == "":
+		return errProductNameRequired
+	case p.Description == "":
+		return errProductDescriptionRequired
+	case p.Quantity == 0:
+		return errQuantityRequired
+	case p.Price == 0:
+		return errPriceRequired
+	case p.CategoryID == 0:
+		return errCategoryIDRequired
+	}
+	return nil
 }
 
 // CreateModel set input values to a new struct and return a new instance.
@@ -78,16 +103,29 @@ func (p ProductCreate) CreateModel() Product {
 	return Product{
 		Name:        p.Name,
 		Description: p.Description,
-		Category:    p.Category,
+		CategoryID:  p.CategoryID,
 		Price:       p.Price,
 		Quantity:    p.Quantity,
 	}
 }
 
-// Validate validates update products.
+// Validate validates PATCH requests model.
 func (p ProductUpdate) Validate() error {
-	v := validator.New()
-	return v.Struct(p)
+	switch {
+	case p.Name != nil && *p.Name == "":
+		return errProductNameRequired
+	case p.Description != nil && *p.Description == "":
+		return errProductDescriptionRequired
+	case p.Quantity != nil && *p.Quantity == 0:
+		return errQuantityRequired
+	case p.Price != nil && *p.Price == 0:
+		return errPriceRequired
+	case p.CategoryID != nil && *p.CategoryID == 0:
+		return errCategoryIDRequired
+	case p.Version == 0:
+		return errVersionRequired
+	}
+	return nil
 }
 
 // UpdateModel checks whether products input are not nil and set values.
@@ -100,8 +138,8 @@ func (p ProductUpdate) UpdateModel(product *Product) {
 		product.Description = *p.Description
 	}
 
-	if p.Category != nil {
-		product.Category = *p.Category
+	if p.CategoryID != nil {
+		product.CategoryID = *p.CategoryID
 	}
 
 	if p.Price != nil {
@@ -111,4 +149,6 @@ func (p ProductUpdate) UpdateModel(product *Product) {
 	if p.Quantity != nil {
 		product.Quantity = *p.Quantity
 	}
+
+	product.Version = p.Version
 }

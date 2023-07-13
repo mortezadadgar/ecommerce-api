@@ -1,0 +1,43 @@
+services:
+  server:
+    build:
+      context: .
+      dockerfile: ./docker/server/Dockerfile
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DSN: "host=postgres dbname=main user=postgres password=${POSTGRES_PASSWORD}"
+      ADDRESS: ":8080"
+    restart: always
+
+  postgres:
+    image: "postgres:15.3-alpine"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    ports:
+      - "5433:5433"
+    volumes:
+      - data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_DB: main
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD}"
+
+  migrate:
+    build:
+      context: .
+      dockerfile: ./docker/migrate/Dockerfile
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DSN: "host=postgres dbname=main user=postgres password=${POSTGRES_PASSWORD}"
+
+volumes:
+  data:

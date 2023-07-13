@@ -1,4 +1,4 @@
--- +migrate Up
+-- +goose Up
 CREATE TABLE IF NOT EXISTS products(
 	id             bigserial     NOT NULL, 
 	name           text          NOT NULL UNIQUE,
@@ -8,11 +8,11 @@ CREATE TABLE IF NOT EXISTS products(
 	quantity       int           NOT NULL,
 	created_at     timestamptz   DEFAULT NOW(),
 	updated_at     timestamptz   DEFAULT NOW(),
+	version        int           DEFAULT 1,
 
 	PRIMARY KEY(id),
 	FOREIGN KEY(category_id) REFERENCES categories(id) ON DELETE CASCADE
 );
 
--- +migrate Down
+-- +goose Down
 DROP TABLE IF EXISTS products;
-DROP EXTENSION IF EXISTS pg_trgm;

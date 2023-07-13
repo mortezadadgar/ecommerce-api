@@ -1,6 +1,13 @@
 package domain
 
-import "context"
+import (
+	"context"
+	"errors"
+)
+
+var (
+	ErrNoSearchResult = errors.New("requested resource not found")
+)
 
 // Search represents search results to users.
 type Search struct {

@@ -22,7 +22,7 @@ func NewSearchStore(db *pgxpool.Pool) SearchStore {
 
 // Search full searches database.
 func (s SearchStore) Search(ctx context.Context, query string) (results []domain.Search, err error) {
-	categories, err := fullSearch[domain.Category](ctx, s.db, "categories", query)
+	categories, err := fullSearchName[domain.Category](ctx, s.db, "categories", query)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -31,7 +31,7 @@ func (s SearchStore) Search(ctx context.Context, query string) (results []domain
 		results = append(results, domain.Search{Categories: &categories[i]})
 	}
 
-	products, err := fullSearch[domain.Product](ctx, s.db, "products", query)
+	products, err := fullSearchName[domain.Product](ctx, s.db, "products", query)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -41,13 +41,13 @@ func (s SearchStore) Search(ctx context.Context, query string) (results []domain
 	}
 
 	if len(results) == 0 {
-		return nil, domain.Errorf(domain.ENOTFOUND, "requested resource not found")
+		return nil, domain.ErrNoSearchResult
 	}
 
 	return results, nil
 }
 
-func fullSearch[T any](ctx context.Context, db *pgxpool.Pool, table string, query string) (results []T, err error) {
+func fullSearchName[T any](ctx context.Context, db *pgxpool.Pool, table string, query string) (results []T, err error) {
 	tx, err := db.Begin(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("%v: %v", ErrBeginTransaction, err)

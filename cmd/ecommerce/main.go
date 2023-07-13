@@ -14,16 +14,17 @@ import (
 
 func main() {
 	err := godotenv.Load()
+	if err != nil && !os.IsNotExist(err) {
+		log.Fatal(err)
+	}
+
+	pg := postgres.Postgres{}
+	err = pg.Connect(os.Getenv("DSN"))
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	pg, err := postgres.New()
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	server := http.New(pg)
+	server := http.New()
 
 	server.UsersStore = postgres.NewUserStore(pg.DB)
 	server.ProductsStore = postgres.NewProductStore(pg.DB)
@@ -31,13 +32,17 @@ func main() {
 	server.TokensStore = postgres.NewTokenStore(pg.DB)
 	server.CartsStore = postgres.NewCartStore(pg.DB)
 	server.SearchStore = postgres.NewSearchStore(pg.DB)
+	server.Store = &pg
 
-	server.Start()
+	err = server.Start()
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	// wait for user signal
 	<-registerSignalNotify()
 
-	err = closeMain(server, pg)
+	err = closeMain(server, &pg)
 	if err != nil {
 		log.Println("failed to close program, exiting now...")
 		os.Exit(1)
@@ -50,7 +55,16 @@ func registerSignalNotify() <-chan os.Signal {
 	return sig
 }
 
-func closeMain(server *http.Server, store http.Store) error {
+type store interface {
+	Close() error
+}
+
+type server interface {
+	Start() error
+	Close() error
+}
+
+func closeMain(server server, store store) error {
 	err := server.Close()
 	if err != nil {
 		return err

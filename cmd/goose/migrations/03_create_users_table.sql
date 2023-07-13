@@ -1,4 +1,4 @@
--- +migrate Up
+-- +goose Up
 CREATE TABLE IF NOT EXISTS users(
 	id            bigserial   NOT NULL,
 	email         text        NOT NULL UNIQUE,
@@ -9,5 +9,5 @@ CREATE TABLE IF NOT EXISTS users(
 	PRIMARY KEY(id)
 );
 
--- +migrate Down
+-- +goose Down
 DROP TABLE IF EXISTS users;

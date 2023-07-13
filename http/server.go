@@ -13,7 +13,6 @@ package http
 
 import (
 	"context"
-	"database/sql"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -29,10 +28,6 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/mortezadadgar/ecommerce-api/domain"
-
-	// http-swagger
-	_ "github.com/swaggo/http-swagger/example/go-chi/docs"
-	httpSwagger "github.com/swaggo/http-swagger/v2"
 )
 
 // Server represents an HTTP server.
@@ -43,74 +38,50 @@ type Server struct {
 	TokensStore     domain.TokenService
 	CartsStore      domain.CartService
 	SearchStore     domain.Searcher
-	store           Store
+	Store           store
 
 	*http.Server
-	*chi.Mux
-}
-
-// Store used for common interaction with database from server.
-type Store interface {
-	Close() error
-	Ping(ctx context.Context) error
 }
 
 // New returns a new instance of Server.
-func New(store Store) *Server {
+func New() *Server {
+	r := chi.NewMux()
 	s := Server{
 		Server: &http.Server{
-			ReadTimeout:  5 * time.Second,
-			WriteTimeout: 10 * time.Second,
+			Handler: r,
 		},
-
-		Mux: chi.NewMux(),
-
-		store: store,
 	}
 
-	s.Use(middleware.Logger)
-	s.Use(middleware.Recoverer)
-	s.Use(middleware.StripSlashes)
-	s.Use(middleware.Timeout(5 * time.Second))
-	s.Use(s.authentication)
+	r.Use(middleware.Logger)
+	r.Use(middleware.Recoverer)
+	r.Use(middleware.StripSlashes)
+	r.Use(middleware.Timeout(5 * time.Second))
+	r.Use(s.authentication)
 
-	s.registerUsersRoutes()
-	s.registerProductsRoutes()
-	s.registerCategoriesRoutes()
-	s.registerCartsRoutes()
-	s.registerSearchRoutes()
+	s.registerUsersRoutes(r)
+	s.registerProductsRoutes(r)
+	s.registerCategoriesRoutes(r)
+	s.registerCartsRoutes(r)
+	s.registerSearchRoutes(r)
 
-	s.Get("/healthcheck", s.healthHandler)
-	s.NotFound(s.notFoundHandler)
-	s.MethodNotAllowed(s.methodNotAllowdHandler)
-
-	fs := http.FileServer(http.Dir("./swagger"))
-	s.With(requireAuth).Handle("/swagger/swagger.json", http.StripPrefix("/swagger", fs))
-
-	s.With(requireAuth).Get("/docs/*", httpSwagger.Handler(
-		httpSwagger.URL("/swagger/swagger.json"),
-		httpSwagger.UIConfig(map[string]string{
-			"defaultModelsExpandDepth": "-1",
-		}),
-	))
-
-	s.Handle("/docs", http.RedirectHandler("/docs/index.html", http.StatusMovedPermanently))
-
-	s.Handler = s.Mux
+	r.Get("/healthcheck", s.healthHandler)
+	r.NotFound(s.notFoundHandler)
+	r.MethodNotAllowed(s.methodNotAllowdHandler)
 
 	return &s
 }
 
 // Start starts the server.
-func (s *Server) Start() {
+func (s *Server) Start() error {
 	l, err := net.Listen("tcp", os.Getenv("ADDRESS"))
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 
 	log.Printf("Started listening on %s", os.Getenv("ADDRESS"))
 
 	go s.Serve(l)
+	return nil
 }
 
 // Close closes the database connection.
@@ -125,9 +96,13 @@ type healthResponse struct {
 	MemUsage string `json:"mem_usage"`
 }
 
+type store interface {
+	Ping(ctx context.Context) error
+}
+
 func (s *Server) healthHandler(w http.ResponseWriter, r *http.Request) {
 	var dbStatus string
-	if err := s.store.Ping(r.Context()); err != nil {
+	if err := s.Store.Ping(r.Context()); err != nil {
 		dbStatus = "Connection Error"
 	} else {
 		dbStatus = "Connection OK"
@@ -144,35 +119,35 @@ func (s *Server) healthHandler(w http.ResponseWriter, r *http.Request) {
 
 	err := ToJSON(w, h, http.StatusOK)
 	if err != nil {
-		Error(w, r, err)
+		Errorf(w, r, http.StatusInternalServerError, err.Error())
 	}
 }
 
 func (s *Server) notFoundHandler(w http.ResponseWriter, r *http.Request) {
-	Error(w, r, domain.Errorf(domain.ENOTFOUND, "the requested url not found"))
+	Errorf(w, r, http.StatusNotFound, "the requested url not found")
 }
 
 func (s *Server) methodNotAllowdHandler(w http.ResponseWriter, r *http.Request) {
-	Error(w, r, domain.Errorf(domain.EINVALID, "the requested method not allowed"))
+	Errorf(w, r, http.StatusBadRequest, "the requested method not allowed")
 }
 
 const maxBytesBodyRead = 1_048_576
 
-// FromJSON decodes the giving struct.
+// FromJSON decodes to giving struct.
 //
 // caller must pass v as pointer.
 func FromJSON(w http.ResponseWriter, r *http.Request, v any) error {
 	r.Body = http.MaxBytesReader(w, r.Body, maxBytesBodyRead)
 
-	err := json.NewDecoder(r.Body).Decode(&v)
+	err := json.NewDecoder(r.Body).Decode(v)
 	if err != nil {
 		var MaxBytesError *http.MaxBytesError
 		switch {
 		case errors.As(err, &MaxBytesError):
-			return domain.Errorf(domain.ETOOLARGE,
-				"exceeded maximum of 1M request body size")
+			return errors.New("exceeded maximum of 1M request body size")
 		default:
-			return err
+			logError(r, err.Error())
+			return errors.New("failed to parse json body")
 		}
 	}
 
@@ -196,6 +171,12 @@ func ParseIntQuery(r *http.Request, v string) (int, error) {
 	return strconv.Atoi(r.URL.Query().Get(v))
 }
 
+// ErrMalformedAuthHeader returned when authorization header is not
+// formatted properly.
+var ErrMalformedAuthHeader = errors.New("malformed authorization header")
+
+// authentication a middleware that utilizes authorization header
+// for token based authentications.
 func (s *Server) authentication(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		auth := r.Header.Get("Authorization")
@@ -204,22 +185,25 @@ func (s *Server) authentication(next http.Handler) http.Handler {
 			return
 		}
 
+		if !strings.Contains(auth, "Bearer") {
+			Errorf(w, r, http.StatusBadRequest, ErrMalformedAuthHeader.Error())
+			return
+		}
+
 		plainToken := strings.TrimPrefix(auth, "Bearer ")
-		if len(plainToken) == 0 {
-			next.ServeHTTP(w, r)
-			return
-		}
 
-		user, err := s.TokensStore.GetUserID(r.Context(), plainToken)
+		userID, err := s.TokensStore.GetUserID(r.Context(), plainToken)
 		if err != nil {
-			if errors.Is(err, sql.ErrNoRows) {
-				Error(w, r, err)
+			if errors.Is(err, domain.ErrInvalidToken) {
+				Errorf(w, r, http.StatusBadRequest, domain.ErrInvalidToken.Error())
+			} else {
+				Errorf(w, r, http.StatusInternalServerError, err.Error())
 			}
-			next.ServeHTTP(w, r)
+
 			return
 		}
 
-		r = r.WithContext(newUserContext(r.Context(), user))
+		r = r.WithContext(newUserContext(r.Context(), userID))
 
 		next.ServeHTTP(w, r)
 	})
@@ -227,10 +211,10 @@ func (s *Server) authentication(next http.Handler) http.Handler {
 
 func requireAuth(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if user := userIDFromContext(r.Context()); user == 0 {
-			Error(w, r, domain.Errorf(domain.EUNAUTHORIZED, "unauthorized access"))
-			return
-		}
+		// if user := userIDFromContext(r.Context()); user == 0 {
+		// Error(w, r, errors.New("unauthorized access"), http.StatusUnauthorized)
+		// 	return
+		// }
 
 		next.ServeHTTP(w, r)
 	})

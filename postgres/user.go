@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/mortezadadgar/ecommerce-api/domain"
@@ -40,7 +41,13 @@ func (u UserStore) Create(ctx context.Context, user *domain.User) error {
 
 	err = tx.QueryRow(ctx, query, args).Scan(&user.ID)
 	if err != nil {
-		return FormatError(err)
+		pgErr := pgError(err)
+		if pgErr.Code == pgerrcode.UniqueViolation {
+			if pgErr.ConstraintName == "users_email_key" {
+				return domain.ErrDuplicatedUserEmail
+			}
+		}
+		return err
 	}
 
 	err = tx.Commit(ctx)
@@ -82,8 +89,8 @@ func (u UserStore) List(ctx context.Context, filter domain.UserFilter) ([]domain
 	query := `
 	SELECT id, email, password_hash FROM users
 	WHERE 1=1
-	` + FormatAndOp("email", filter.Email) + `
-	` + FormatAndIntOp("id", filter.ID) + `
+	` + FormatAnd("email", filter.Email) + `
+	` + FormatAndInt("id", filter.ID) + `
 	` + FormatSort(filter.Sort) + `
 	` + FormatLimitOffset(filter.Limit, filter.Offset) + `
 	`
@@ -99,12 +106,7 @@ func (u UserStore) List(ctx context.Context, filter domain.UserFilter) ([]domain
 	}
 
 	if len(users) == 0 {
-		return nil, domain.Errorf(domain.ENOTFOUND, "there is no user to list")
-	}
-
-	err = tx.Commit(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("%v: %v", ErrCommitTransaction, err)
+		return nil, domain.ErrNoUsersFound
 	}
 
 	return users, nil
@@ -133,7 +135,7 @@ func (u UserStore) Delete(ctx context.Context, ID int) error {
 	}
 
 	if rows := result.RowsAffected(); rows != 1 {
-		return domain.Errorf(domain.ENOTFOUND, "requested user not found")
+		return domain.ErrNoUsersFound
 	}
 
 	err = tx.Commit(ctx)

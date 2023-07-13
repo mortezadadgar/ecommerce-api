@@ -2,9 +2,22 @@ package domain
 
 import (
 	"context"
+	"errors"
+	"strings"
 
-	"github.com/go-playground/validator/v10"
 	"golang.org/x/crypto/bcrypt"
+)
+
+var (
+	ErrDuplicatedUserEmail = errors.New("duplicated email")
+	ErrNoUsersFound        = errors.New("no users to list")
+
+	errEmailRequired    = errors.New("email is required")
+	errEmailTooLong     = errors.New("email length too long")
+	errEmailInvalid     = errors.New("email in not valid")
+	errPasswordRequired = errors.New("password is required")
+	errPasswrodTooSmall = errors.New("password length too small")
+	errPasswordTooLong  = errors.New("password length too long")
 )
 
 // WrapUser wraps users for user representation.
@@ -55,16 +68,26 @@ type UserService interface {
 	List(ctx context.Context, filter UserFilter) ([]User, error)
 }
 
-// Validate validates create users.
-func (u UserLogin) Validate() error {
-	v := validator.New()
-	return v.Struct(u)
-}
+// Common erros used for users validations.
+var ()
 
-// Validate validates users login.
+// Validate validates POST requests model.
 func (u UserCreate) Validate() error {
-	v := validator.New()
-	return v.Struct(u)
+	switch {
+	case u.Email == "":
+		return errEmailRequired
+	case len(u.Email) >= 500:
+		return errEmailTooLong
+	case !strings.Contains(u.Email, "@"):
+		return errEmailInvalid
+	case u.Password == "":
+		return errPasswordRequired
+	case len(u.Password) <= 8:
+		return errPasswrodTooSmall
+	case len(u.Password) >= 72:
+		return errPasswordTooLong
+	}
+	return nil
 }
 
 // CreateModel set input values and password to a new struct and return a new instance.
@@ -73,6 +96,17 @@ func (u UserCreate) CreateModel(password []byte) User {
 		Email:    u.Email,
 		Password: password,
 	}
+}
+
+// Validate validates PATCH requests model.
+func (u UserLogin) Validate() error {
+	switch {
+	case u.Email == "":
+		return errEmailRequired
+	case u.Password == "":
+		return errPasswordRequired
+	}
+	return nil
 }
 
 // GenerateHashedPassword generates hashed password.

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/mortezadadgar/ecommerce-api/domain"
@@ -42,7 +43,16 @@ func (c CartStore) Create(ctx context.Context, cart *domain.Cart) error {
 
 	err = tx.QueryRow(ctx, query, args).Scan(&cart.ID)
 	if err != nil {
-		return FormatError(err)
+		pgErr := pgError(err)
+		if pgErr.Code == pgerrcode.ForeignKeyViolation {
+			if pgErr.ConstraintName == "carts_user_id_fkey" {
+				return domain.ErrCartInvalidUserID
+			}
+			if pgErr.ConstraintName == "carts_product_id_fkey" {
+				return domain.ErrCartInvalidProductID
+			}
+		}
+		return err
 	}
 
 	err = tx.Commit(ctx)
@@ -85,8 +95,8 @@ func (c CartStore) List(ctx context.Context, filter domain.CartFilter) ([]domain
 	SELECT * FROM carts
 	WHERE 1=1
 	` + FormatSort(filter.Sort) + `
-	` + FormatAndIntOp("id", filter.ID) + `
-	` + FormatAndIntOp("user_id", filter.UserID) + `
+	` + FormatAndInt("id", filter.ID) + `
+	` + FormatAndInt("user_id", filter.UserID) + `
 	` + FormatLimitOffset(filter.Limit, filter.Offset) + `
 	`
 
@@ -101,12 +111,7 @@ func (c CartStore) List(ctx context.Context, filter domain.CartFilter) ([]domain
 	}
 
 	if len(carts) == 0 {
-		return nil, domain.Errorf(domain.ENOTFOUND, "there is no cart to list")
-	}
-
-	err = tx.Commit(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("%v: %v", ErrCommitTransaction, err)
+		return nil, domain.ErrNoCartsFound
 	}
 
 	return carts, nil
@@ -132,9 +137,19 @@ func (c CartStore) Update(ctx context.Context, cart *domain.Cart) error {
 		"id":         &cart.ID,
 	}
 
-	_, err = tx.Exec(ctx, query, args)
+	rows, err := tx.Exec(ctx, query, args)
 	if err != nil {
-		return FormatError(err)
+		pgErr := pgError(err)
+		if pgErr.Code == pgerrcode.ForeignKeyViolation {
+			if pgErr.ConstraintName == "carts_product_id_fkey" {
+				return domain.ErrCartInvalidProductID
+			}
+		}
+		return err
+	}
+
+	if rows.RowsAffected() == 0 {
+		return domain.ErrNoCartsFound
 	}
 
 	err = tx.Commit(ctx)
@@ -168,7 +183,7 @@ func (c CartStore) Delete(ctx context.Context, ID int) error {
 	}
 
 	if rows := result.RowsAffected(); rows != 1 {
-		return domain.Errorf(domain.ENOTFOUND, "requested cart not found")
+		return domain.ErrNoCartsFound
 	}
 
 	err = tx.Commit(ctx)

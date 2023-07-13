@@ -2,9 +2,10 @@ package postgres
 
 import (
 	"context"
-	"database/sql"
+	"errors"
 	"fmt"
 
+	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/mortezadadgar/ecommerce-api/domain"
@@ -31,7 +32,7 @@ func (c CategoryStore) Create(ctx context.Context, category *domain.Category) er
 	query := `
 	 INSERT INTO categories(name, description)
 	 VALUES(@name, @description)
-	 RETURNING id
+	 RETURNING id, version
 	`
 
 	args := pgx.NamedArgs{
@@ -39,9 +40,15 @@ func (c CategoryStore) Create(ctx context.Context, category *domain.Category) er
 		"description": &category.Description,
 	}
 
-	err = tx.QueryRow(ctx, query, args).Scan(&category.ID)
+	err = tx.QueryRow(ctx, query, args).Scan(&category.ID, &category.Version)
 	if err != nil {
-		return FormatError(err)
+		pgErr := pgError(err)
+		if pgErr.Code == pgerrcode.UniqueViolation {
+			if pgErr.ConstraintName == "categories_name_key" {
+				return domain.ErrDuplicatedCategory
+			}
+		}
+		return err
 	}
 
 	err = tx.Commit(ctx)
@@ -74,8 +81,8 @@ func (c CategoryStore) List(ctx context.Context, filter domain.CategoryFilter) (
 	SELECT * FROM categories
 	WHERE 1=1
 	` + FormatSort(filter.Sort) + `
-	` + FormatAndOp("name", filter.Name) + `
-	` + FormatAndIntOp("id", filter.ID) + `
+	` + FormatAnd("name", filter.Name) + `
+	` + FormatAndInt("id", filter.ID) + `
 	` + FormatLimitOffset(filter.Limit, filter.Offset) + `
 	`
 
@@ -90,12 +97,7 @@ func (c CategoryStore) List(ctx context.Context, filter domain.CategoryFilter) (
 	}
 
 	if len(categories) == 0 {
-		return nil, sql.ErrNoRows
-	}
-
-	err = tx.Commit(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("%v: %v", ErrCommitTransaction, err)
+		return nil, domain.ErrNoCategoryFound
 	}
 
 	return categories, nil
@@ -111,19 +113,32 @@ func (c CategoryStore) Update(ctx context.Context, category *domain.Category) er
 
 	query := `
 	UPDATE categories
-	SET name = @name, description = @description, updated_at = NOW()
-	WHERE id = @id
+	SET name = @name, description = @description, updated_at = NOW(), version = version + 1
+	WHERE id = @id AND version = @version
+	RETURNING version
 	`
 
 	args := pgx.NamedArgs{
 		"name":        &category.Name,
 		"description": &category.Description,
 		"id":          &category.ID,
+		"version":     &category.Version,
 	}
 
-	_, err = tx.Exec(ctx, query, args)
+	err = tx.QueryRow(ctx, query, args).Scan(&category.Version)
 	if err != nil {
-		return FormatError(err)
+		pgErr := pgError(err)
+		if pgErr.Code == pgerrcode.UniqueViolation {
+			if pgErr.ConstraintName == "categories_name_key" {
+				return domain.ErrDuplicatedCategory
+			}
+		}
+
+		if errors.Is(err, pgx.ErrNoRows) {
+			return domain.ErrCategoryConflict
+		}
+
+		return err
 	}
 
 	err = tx.Commit(ctx)
@@ -157,7 +172,7 @@ func (c CategoryStore) Delete(ctx context.Context, ID int) error {
 	}
 
 	if rows := result.RowsAffected(); rows != 1 {
-		return domain.Errorf(domain.ENOTFOUND, "requested category not found")
+		return domain.ErrNoCategoryFound
 	}
 
 	err = tx.Commit(ctx)

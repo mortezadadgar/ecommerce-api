@@ -5,13 +5,20 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"os"
-	"strings"
+	"sync"
 	"time"
 
 	// postgres driver.
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/mortezadadgar/ecommerce-api/domain"
+)
+
+var (
+	// ErrBeginTransaction returned when transaction fails from beginning.
+	ErrBeginTransaction = errors.New("failed to begin transaction")
+
+	// ErrCommitTransaction returned when commit transaction fails.
+	ErrCommitTransaction = errors.New("failed to commit transaction")
 )
 
 // Postgres represents postgres connection pool.
@@ -19,49 +26,39 @@ type Postgres struct {
 	DB *pgxpool.Pool
 }
 
-// ErrBeginTransaction returned when transaction fails from beginning.
-var ErrBeginTransaction = errors.New("failed to begin transaction")
+// Connect connet to postgres driver with giving dsn.
+func (p *Postgres) Connect(dsn string) error {
+	var (
+		once sync.Once
+		err  error
+		db   *pgxpool.Pool
+	)
 
-// ErrCommitTransaction returned when commit transaction fails.
-var ErrCommitTransaction = errors.New("failed to commit transaction")
+	once.Do(func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
 
-// New returns a new instance of postgres and connect as well.
-func New() (Postgres, error) {
-	db, err := connect()
+		db, err = pgxpool.New(ctx, dsn)
+		p.DB = db
+
+		err = db.Ping(ctx)
+	})
+
 	if err != nil {
-		return Postgres{}, err
+		return err
 	}
 
-	return Postgres{
-		DB: db,
-	}, nil
-}
-
-func connect() (*pgxpool.Pool, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-
-	db, err := pgxpool.New(ctx, os.Getenv("DSN"))
-	if err != nil {
-		return nil, fmt.Errorf("failed to open postgresql: %v", err)
-	}
-
-	err = db.Ping(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("failed to make connection to pg: %v", err)
-	}
-
-	return db, nil
+	return nil
 }
 
 // Close closes postgres connection.
-func (p Postgres) Close() error {
+func (p *Postgres) Close() error {
 	p.DB.Close()
 	return nil
 }
 
 // Ping test postgres connection.
-func (p Postgres) Ping(ctx context.Context) error {
+func (p *Postgres) Ping(ctx context.Context) error {
 	return p.DB.Ping(ctx)
 }
 
@@ -74,55 +71,44 @@ func FormatLimitOffset(limit int, offset int) string {
 		return fmt.Sprintf("LIMIT %d", limit)
 	case offset > 0:
 		return fmt.Sprintf("OFFSET %d", offset)
+	default:
+		return ""
 	}
-
-	return ""
 }
 
 // FormatSort returns a SQL string for a giving column.
-func FormatSort(v string) string {
-	if v != "" {
-		return fmt.Sprintf("ORDER BY %s", v)
+func FormatSort(column string) string {
+	if column != "" {
+		return fmt.Sprintf("ORDER BY %s", column)
 	}
 
 	return ""
 }
 
-// FormatAndOp returns a SQL string for a giving column and string value.
-func FormatAndOp(s string, v string) string {
-	if v != "" {
-		return fmt.Sprintf("AND %s='%s'", s, v)
+// FormatAnd returns a SQL string for a giving column and string value.
+func FormatAnd(column string, value string) string {
+	if value != "" {
+		return fmt.Sprintf("AND %s='%s'", column, value)
 	}
 
 	return ""
 }
 
-// FormatAndIntOp returns a SQL string for a giving column and integer value.
-func FormatAndIntOp(s string, v int) string {
-	if v != 0 {
-		return fmt.Sprintf("AND %s='%d'", s, v)
+// FormatAndInt returns a SQL string for a giving column and integer value.
+func FormatAndInt(column string, value int) string {
+	if value != 0 {
+		return fmt.Sprintf("AND %s='%d'", column, value)
 	}
 
 	return ""
 }
 
-// FormatError formats common errors returned from postgres driver.
-func FormatError(err error) error {
-	message := err.Error()
-	switch {
-	case strings.Contains(message, "carts_user_id_fkey"):
-		return domain.Errorf(domain.EINVALID, "carts's user must matches a valid user")
-	case strings.Contains(message, "carts_product_id_fkey"):
-		return domain.Errorf(domain.EINVALID, "carts's product must matches a valid product")
-	case strings.Contains(message, "products_name_key"):
-		return domain.Errorf(domain.ECONFLICT, "duplicated products are not allowed")
-	case strings.Contains(message, "products_category_fkey"):
-		return domain.Errorf(domain.EINVALID, "product's category must matches a valid category")
-	case strings.Contains(message, "users_email_key"):
-		return domain.Errorf(domain.ECONFLICT, "duplicated email are not allowed")
-	case strings.Contains(message, "categories_name_key"):
-		return domain.Errorf(domain.ECONFLICT, "duplicated categories are not allowed")
-	default:
-		return err
+// pgError returns postgres error type.
+func pgError(err error) pgconn.PgError {
+	var pgErr *pgconn.PgError
+	if errors.As(err, &pgErr) {
+		return *pgErr
 	}
+
+	return pgconn.PgError{}
 }

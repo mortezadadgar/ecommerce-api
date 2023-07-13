@@ -6,3 +6,5 @@ build: make_swagger
 	@go build .
 test:
 	@go test ./...
+make_migrate:
+	go build -o migrate ./cmd/goose

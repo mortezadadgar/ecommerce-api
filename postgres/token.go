@@ -2,7 +2,9 @@ package postgres
 
 import (
 	"context"
+	"errors"
 
+	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/mortezadadgar/ecommerce-api/domain"
@@ -24,7 +26,6 @@ func (t TokenStore) Create(ctx context.Context, token domain.Token) error {
 	INSERT INTO tokens(hashed, user_id, expiry)
 	VALUES(@hashed, @user_id, @expiry)
 	`
-
 	args := pgx.NamedArgs{
 		"hashed":  &token.Hashed,
 		"user_id": &token.UserID,
@@ -33,7 +34,11 @@ func (t TokenStore) Create(ctx context.Context, token domain.Token) error {
 
 	_, err := t.db.Exec(ctx, query, args)
 	if err != nil {
-		return FormatError(err)
+		pgErr := pgError(err)
+		if pgErr.Code == pgerrcode.ForeignKeyViolation {
+			return domain.ErrInvalidToken
+		}
+		return err
 	}
 
 	return nil
@@ -41,9 +46,8 @@ func (t TokenStore) Create(ctx context.Context, token domain.Token) error {
 
 // GetUserID get user by token and return ErrNoRows on expired tokens.
 func (t TokenStore) GetUserID(ctx context.Context, plainToken string) (int, error) {
-	// TODO: create a struct for returned values
 	query := `
-	SELECT id, email, password_hash FROM users
+	SELECT id FROM users
 	INNER JOIN tokens ON users.id = tokens.user_id
 	WHERE tokens.hashed = @hashed
 	AND tokens.expiry > NOW()
@@ -55,19 +59,14 @@ func (t TokenStore) GetUserID(ctx context.Context, plainToken string) (int, erro
 		"hashed": hashedToken,
 	}
 
-	rows, err := t.db.Query(ctx, query, args)
+	var userID int
+	err := t.db.QueryRow(ctx, query, args).Scan(&userID)
 	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return 0, domain.ErrNoTokenFound
+		}
 		return 0, err
 	}
 
-	user, err := pgx.CollectOneRow(rows, pgx.RowToStructByName[domain.User])
-	if err != nil {
-		return 0, FormatError(err)
-	}
-
-	if user.ID == 0 {
-		return 0, domain.Errorf(domain.ENOTFOUND, "requested user by token not found")
-	}
-
-	return user.ID, nil
+	return userID, nil
 }

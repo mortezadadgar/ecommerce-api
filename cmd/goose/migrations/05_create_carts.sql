@@ -1,4 +1,4 @@
--- +migrate Up
+-- +goose Up
 CREATE TABLE IF NOT EXISTS carts(
 	id         bigserial NOT NULL,
 	product_id bigserial NOT NULL,
@@ -10,5 +10,5 @@ CREATE TABLE IF NOT EXISTS carts(
 	FOREIGN KEY(product_id) REFERENCES products(id) ON DELETE CASCADE
 );
 
--- +migrate Down
+-- +goose Down
 DROP TABLE IF EXISTS carts;

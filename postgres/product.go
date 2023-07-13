@@ -2,8 +2,10 @@ package postgres
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
+	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/mortezadadgar/ecommerce-api/domain"
@@ -27,24 +29,34 @@ func (p ProductStore) Create(ctx context.Context, product *domain.Product) error
 	}
 	defer tx.Rollback(ctx)
 
-	fmt.Println("creating products")
 	query := `
-	 INSERT INTO products(name, description, category, price, quantity)
+	 INSERT INTO products(name, description, category_id, price, quantity)
 	 VALUES(@name, @description, @category, @price, @quantity)
-	 RETURNING id
+	 RETURNING id, version
 	`
 
 	args := pgx.NamedArgs{
 		"name":        &product.Name,
 		"description": &product.Description,
-		"category":    &product.Category,
+		"category":    &product.CategoryID,
 		"price":       &product.Price,
 		"quantity":    &product.Quantity,
 	}
 
-	err = tx.QueryRow(ctx, query, args).Scan(&product.ID)
+	err = tx.QueryRow(ctx, query, args).Scan(&product.ID, &product.Version)
 	if err != nil {
-		return FormatError(err)
+		pgErr := pgError(err)
+		switch pgErr.Code {
+		case pgerrcode.ForeignKeyViolation:
+			if pgErr.ConstraintName == "products_category_id_fkey" {
+				return domain.ErrInvalidProductCategory
+			}
+		case pgerrcode.UniqueViolation:
+			if pgErr.ConstraintName == "products_name_key" {
+				return domain.ErrDuplicatedProduct
+			}
+		}
+		return err
 	}
 
 	err = tx.Commit(ctx)
@@ -77,9 +89,8 @@ func (p ProductStore) List(ctx context.Context, filter domain.ProductFilter) ([]
 	SELECT * FROM products
 	WHERE 1=1
 	` + FormatSort(filter.Sort) + `
-	` + FormatAndOp("category", filter.Category) + `
-	` + FormatAndOp("name", filter.Name) + `
-	` + FormatAndIntOp("id", filter.ID) + `
+	` + FormatAndInt("category_id", filter.CategoryID) + `
+	` + FormatAndInt("id", filter.ID) + `
 	` + FormatLimitOffset(filter.Limit, filter.Offset) + `
 	`
 
@@ -94,7 +105,7 @@ func (p ProductStore) List(ctx context.Context, filter domain.ProductFilter) ([]
 	}
 
 	if len(products) == 0 {
-		return nil, domain.Errorf(domain.ENOTFOUND, "requested products not found")
+		return nil, domain.ErrNoProductsFound
 	}
 
 	err = tx.Commit(ctx)
@@ -115,22 +126,40 @@ func (p ProductStore) Update(ctx context.Context, product *domain.Product) error
 
 	query := `
 	UPDATE products
-	SET name = @name, description = @description, category = @category, price = @price, quantity = @quantity, updated_at = NOW()
-	WHERE id = @id
+	SET name = @name, description = @description, category_id = @category, price = @price, quantity = @quantity, updated_at = NOW(), version = version + 1
+	WHERE id = @id AND version = @version
+	RETURNING version
 	`
 
 	args := pgx.NamedArgs{
 		"name":        &product.Name,
 		"description": &product.Description,
-		"category":    &product.Category,
+		"category":    &product.CategoryID,
 		"price":       &product.Price,
 		"quantity":    &product.Quantity,
 		"id":          &product.ID,
+		"version":     &product.Version,
 	}
 
-	_, err = tx.Exec(ctx, query, args)
+	err = tx.QueryRow(ctx, query, args).Scan(&product.Version)
 	if err != nil {
-		return FormatError(err)
+		pgErr := pgError(err)
+		switch pgErr.Code {
+		case pgerrcode.ForeignKeyViolation:
+			if pgErr.ConstraintName == "products_category_id_fkey" {
+				return domain.ErrInvalidProductCategory
+			}
+		case pgerrcode.UniqueViolation:
+			if pgErr.ConstraintName == "products_name_key" {
+				return domain.ErrDuplicatedProduct
+			}
+		}
+
+		if errors.Is(err, pgx.ErrNoRows) {
+			return domain.ErrProductConflict
+		}
+
+		return err
 	}
 
 	err = tx.Commit(ctx)
@@ -164,7 +193,7 @@ func (p ProductStore) Delete(ctx context.Context, ID int) error {
 	}
 
 	if rows := result.RowsAffected(); rows != 1 {
-		return domain.Errorf(domain.ENOTFOUND, "requested product not found")
+		return domain.ErrNoProductsFound
 	}
 
 	err = tx.Commit(ctx)

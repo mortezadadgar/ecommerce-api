@@ -5,7 +5,14 @@ import (
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/base64"
+	"errors"
 	"time"
+)
+
+var (
+	// ErrInvalidToken returns when requested token is not found in store.
+	ErrInvalidToken = errors.New("invalid user token")
+	ErrNoTokenFound = errors.New("token not found")
 )
 
 // WrapToken wraps token for user representation.

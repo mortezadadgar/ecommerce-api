@@ -2,8 +2,16 @@ package domain
 
 import (
 	"context"
+	"errors"
+)
 
-	"github.com/go-playground/validator/v10"
+var (
+	ErrCartInvalidUserID    = errors.New("invalid user id cart")
+	ErrCartInvalidProductID = errors.New("invalid product id cart")
+	ErrNoCartsFound         = errors.New("no carts found")
+
+	errUserIDRequired    = errors.New("user_id is required")
+	errProductIDRequired = errors.New("product_id is required")
 )
 
 // WrapCart wraps carts for user representation.
@@ -26,15 +34,15 @@ type Cart struct {
 
 // CartCreate represents carts model for POST requests.
 type CartCreate struct {
-	UserID    int `json:"user_id" validate:"required"`
-	ProductID int `json:"product_id" validate:"required"`
-	Quantity  int `json:"quantity" validate:"required"`
+	UserID    int `json:"user_id"`
+	ProductID int `json:"product_id"`
+	Quantity  int `json:"quantity"`
 }
 
 // CartUpdate represents carts model for PATCH requests.
 type CartUpdate struct {
-	ProductID *int `json:"product_id" validate:"omitempty,required"`
-	Quantity  *int `json:"quantity" validate:"omitempty,required"`
+	ProductID *int `json:"product_id"`
+	Quantity  *int `json:"quantity"`
 }
 
 // CartFilter represents filters passed to List.
@@ -57,10 +65,17 @@ type CartService interface {
 	Delete(ctx context.Context, userID int) error
 }
 
-// Validate validates create products.
+// Validate validates update products.
 func (c CartCreate) Validate() error {
-	v := validator.New()
-	return v.Struct(c)
+	switch {
+	case c.UserID == 0:
+		return errUserIDRequired
+	case c.ProductID == 0:
+		return errProductIDRequired
+	case c.Quantity == 0:
+		return errQuantityRequired
+	}
+	return nil
 }
 
 // CreateModel set input values to a new struct and return a new instance.
@@ -74,8 +89,13 @@ func (c CartCreate) CreateModel() Cart {
 
 // Validate validates update products.
 func (c CartUpdate) Validate() error {
-	v := validator.New()
-	return v.Struct(c)
+	switch {
+	case c.ProductID != nil && *c.ProductID == 0:
+		return errProductIDRequired
+	case c.Quantity != nil && *c.Quantity == 0:
+		return errQuantityRequired
+	}
+	return nil
 }
 
 // UpdateModel checks whether carts input are not nil and set values.

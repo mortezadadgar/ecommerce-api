@@ -5,9 +5,17 @@ package domain
 
 import (
 	"context"
+	"errors"
 	"time"
+)
 
-	"github.com/go-playground/validator/v10"
+var (
+	ErrDuplicatedCategory = errors.New("duplicated category")
+	ErrNoCategoryFound    = errors.New("no categories found")
+	ErrCategoryConflict   = errors.New("update conflict error")
+
+	errCategoryNameRequired        = errors.New("name is required")
+	errCategoryDescriptionRequired = errors.New("description is required")
 )
 
 // WrapCategory wraps categories for user representation.
@@ -27,6 +35,7 @@ type Category struct {
 	Description string    `json:"description"`
 	CreatedAt   time.Time `json:"-" db:"created_at"`
 	UpdatedAt   time.Time `json:"-" db:"updated_at"`
+	Version     int       `json:"version"`
 }
 
 // CategoryCreate represents categories model for POST requests.
@@ -39,6 +48,7 @@ type CategoryCreate struct {
 type CategoryUpdate struct {
 	Name        *string `json:"name" validate:"omitempty,required"`
 	Description *string `json:"description" validate:"omitempty,required"`
+	Version     int     `json:"version" validate:"required"`
 }
 
 // CategoryFilter represents filters passed to List.
@@ -60,10 +70,15 @@ type CategoryService interface {
 	List(ctx context.Context, filter CategoryFilter) ([]Category, error)
 }
 
-// Validate validates catergories.
+// Validate validates POST requests model.
 func (c CategoryCreate) Validate() error {
-	v := validator.New()
-	return v.Struct(c)
+	switch {
+	case c.Name == "":
+		return errCategoryNameRequired
+	case c.Description == "":
+		return errCategoryDescriptionRequired
+	}
+	return nil
 }
 
 // CreateModel set input values to a new struct and return a new instance.
@@ -74,10 +89,15 @@ func (c CategoryCreate) CreateModel() Category {
 	}
 }
 
-// Validate validates catergories.
+// Validate validates PATCH requests model.
 func (c CategoryUpdate) Validate() error {
-	v := validator.New()
-	return v.Struct(c)
+	switch {
+	case c.Name != nil && *c.Name == "":
+		return errCategoryNameRequired
+	case c.Description != nil && *c.Description == "":
+		return errCategoryDescriptionRequired
+	}
+	return nil
 }
 
 // UpdateModel checks whether input are not nil and set values.
@@ -89,4 +109,6 @@ func (c CategoryUpdate) UpdateModel(category *Category) {
 	if c.Description != nil {
 		category.Description = *c.Description
 	}
+
+	category.Version = c.Version
 }

@@ -1,4 +1,4 @@
--- +migrate Up
+-- +goose Up
 CREATE UNLOGGED TABLE IF NOT EXISTS tokens(
 	hashed  bytea       NOT NULL,
 	user_id bigserial   NOT NULL,
@@ -7,5 +7,5 @@ CREATE UNLOGGED TABLE IF NOT EXISTS tokens(
 	FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
--- +migrate Down
+-- +goose Down
 DROP TABLE IF EXISTS tokens;
