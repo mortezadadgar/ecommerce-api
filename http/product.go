@@ -10,7 +10,7 @@ import (
 	"github.com/mortezadadgar/ecommerce-api/domain"
 )
 
-func (s *Server) registerProductsRoutes(r *chi.Mux) {
+func (s *server) registerProductsRoutes(r *chi.Mux) {
 	r.Route("/products", func(r chi.Router) {
 		r.Get("/{id}", s.getProductHandler)
 		r.Get("/", s.listProductsHandler)
@@ -30,7 +30,7 @@ func (s *Server) registerProductsRoutes(r *chi.Mux) {
 // @Failure      404            {object}    http.WrapError
 // @Failure      500            {object}    http.WrapError
 // @Router       /products/{id} [get]
-func (s *Server) getProductHandler(w http.ResponseWriter, r *http.Request) {
+func (s *server) getProductHandler(w http.ResponseWriter, r *http.Request) {
 	ID, err := strconv.Atoi(chi.URLParam(r, "id"))
 	if err != nil {
 		ErrorInvalidQuery(w, r)
@@ -64,7 +64,7 @@ func (s *Server) getProductHandler(w http.ResponseWriter, r *http.Request) {
 // @Failure      404          {object}    http.WrapError
 // @Failure      500          {object}    http.WrapError
 // @Router       /products/   [get]
-func (s *Server) listProductsHandler(w http.ResponseWriter, r *http.Request) {
+func (s *server) listProductsHandler(w http.ResponseWriter, r *http.Request) {
 	limit, err := ParseIntQuery(r, "limit")
 	if err != nil {
 		ErrorInvalidQuery(w, r)
@@ -118,7 +118,7 @@ func (s *Server) listProductsHandler(w http.ResponseWriter, r *http.Request) {
 // @Failure      413              {object}    http.WrapError
 // @Failure      500              {object}    http.WrapError
 // @Router       /products/{id}   [post]
-func (s *Server) createProductHandler(w http.ResponseWriter, r *http.Request) {
+func (s *server) createProductHandler(w http.ResponseWriter, r *http.Request) {
 	input := domain.ProductCreate{}
 	err := FromJSON(w, r, &input)
 	if err != nil {
@@ -163,7 +163,7 @@ func (s *Server) createProductHandler(w http.ResponseWriter, r *http.Request) {
 // @Failure      413             {object}    http.WrapError
 // @Failure      500             {object}    http.WrapError
 // @Router       /products/{id}  [patch]
-func (s *Server) updateProductHandler(w http.ResponseWriter, r *http.Request) {
+func (s *server) updateProductHandler(w http.ResponseWriter, r *http.Request) {
 	ID, err := strconv.Atoi(chi.URLParam(r, "id"))
 	if err != nil {
 		ErrorInvalidQuery(w, r)
@@ -212,7 +212,7 @@ func (s *Server) updateProductHandler(w http.ResponseWriter, r *http.Request) {
 // @Failure      404            {object}    http.WrapError
 // @Failure      500            {object}    http.WrapError
 // @Router       /products/{id} [delete]
-func (s *Server) deleteProductHandler(w http.ResponseWriter, r *http.Request) {
+func (s *server) deleteProductHandler(w http.ResponseWriter, r *http.Request) {
 	ID, err := strconv.Atoi(chi.URLParam(r, "id"))
 	if err != nil {
 		Errorf(w, r, http.StatusInternalServerError, err.Error())

@@ -12,7 +12,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-func (s *Server) registerUsersRoutes(r *chi.Mux) {
+func (s *server) registerUsersRoutes(r *chi.Mux) {
 	r.Route("/auth", func(r chi.Router) {
 		r.Post("/login", s.loginAuthHandler)
 		// sign_up
@@ -39,7 +39,7 @@ func (s *Server) registerUsersRoutes(r *chi.Mux) {
 // @Failure      404            {object}    http.WrapError
 // @Failure      500            {object}    http.WrapError
 // @Router       /users/{id}    [get]
-func (s *Server) getUserHandler(w http.ResponseWriter, r *http.Request) {
+func (s *server) getUserHandler(w http.ResponseWriter, r *http.Request) {
 	ID, err := strconv.Atoi(chi.URLParam(r, "id"))
 	if err != nil {
 		ErrorInvalidQuery(w, r)
@@ -75,7 +75,7 @@ func (s *Server) getUserHandler(w http.ResponseWriter, r *http.Request) {
 // @Failure      404            {object}    http.WrapError
 // @Failure      500            {object}    http.WrapError
 // @Router       /users/        [get]
-func (s *Server) listUsersHandler(w http.ResponseWriter, r *http.Request) {
+func (s *server) listUsersHandler(w http.ResponseWriter, r *http.Request) {
 	limit, err := ParseIntQuery(r, "limit")
 	if err != nil {
 		ErrorInvalidQuery(w, r)
@@ -122,7 +122,7 @@ func (s *Server) listUsersHandler(w http.ResponseWriter, r *http.Request) {
 // @Failure      413          {object}    http.WrapError
 // @Failure      500          {object}    http.WrapError
 // @Router       /users/      [post]
-func (s *Server) createUserHandler(w http.ResponseWriter, r *http.Request) {
+func (s *server) createUserHandler(w http.ResponseWriter, r *http.Request) {
 	input := domain.UserCreate{}
 	err := FromJSON(w, r, &input)
 	if err != nil {
@@ -171,7 +171,7 @@ func (s *Server) createUserHandler(w http.ResponseWriter, r *http.Request) {
 // @Failure      404            {object}    http.WrapError
 // @Failure      500            {object}    http.WrapError
 // @Router       /users/{id}    [delete]
-func (s *Server) deleteUserHandler(w http.ResponseWriter, r *http.Request) {
+func (s *server) deleteUserHandler(w http.ResponseWriter, r *http.Request) {
 	ID, err := strconv.Atoi(chi.URLParam(r, "id"))
 	if err != nil {
 		ErrorInvalidQuery(w, r)
@@ -199,7 +199,7 @@ func (s *Server) deleteUserHandler(w http.ResponseWriter, r *http.Request) {
 // @Failure      413          {object}    http.WrapError
 // @Failure      500          {object}    http.WrapError
 // @Router       /auth/login  [post]
-func (s *Server) loginAuthHandler(w http.ResponseWriter, r *http.Request) {
+func (s *server) loginAuthHandler(w http.ResponseWriter, r *http.Request) {
 	input := domain.UserLogin{}
 	err := FromJSON(w, r, &input)
 	if err != nil {

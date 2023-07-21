@@ -11,18 +11,18 @@ import (
 	"github.com/mortezadadgar/ecommerce-api/domain"
 )
 
-// CartStore represents carts database.
-type CartStore struct {
+// cartStore represents carts database.
+type cartStore struct {
 	db *pgxpool.Pool
 }
 
 // NewCartStore returns a new instance of CartStore.
-func NewCartStore(db *pgxpool.Pool) CartStore {
-	return CartStore{db: db}
+func NewCartStore(db *pgxpool.Pool) cartStore {
+	return cartStore{db: db}
 }
 
 // Create creates a new cart in database.
-func (c CartStore) Create(ctx context.Context, cart *domain.Cart) error {
+func (c cartStore) Create(ctx context.Context, cart *domain.Cart) error {
 	query := `
 	INSERT INTO carts(product_id, quantity, user_id)
 	VALUES(@product_id, @quantity, @user_id)
@@ -53,7 +53,7 @@ func (c CartStore) Create(ctx context.Context, cart *domain.Cart) error {
 }
 
 // GetByUser get user's cart by id from database.
-func (c CartStore) GetByUser(ctx context.Context, userID int) ([]domain.Cart, error) {
+func (c cartStore) GetByUser(ctx context.Context, userID int) ([]domain.Cart, error) {
 	cart, err := c.List(ctx, domain.CartFilter{UserID: userID})
 	if err != nil {
 		return nil, err
@@ -63,7 +63,7 @@ func (c CartStore) GetByUser(ctx context.Context, userID int) ([]domain.Cart, er
 }
 
 // GetByID get cart by id from database.
-func (c CartStore) GetByID(ctx context.Context, ID int) (domain.Cart, error) {
+func (c cartStore) GetByID(ctx context.Context, ID int) (domain.Cart, error) {
 	cart, err := c.List(ctx, domain.CartFilter{ID: ID})
 	if err != nil {
 		return domain.Cart{}, err
@@ -73,7 +73,7 @@ func (c CartStore) GetByID(ctx context.Context, ID int) (domain.Cart, error) {
 }
 
 // List lists carts with optional filter.
-func (c CartStore) List(ctx context.Context, filter domain.CartFilter) ([]domain.Cart, error) {
+func (c cartStore) List(ctx context.Context, filter domain.CartFilter) ([]domain.Cart, error) {
 	query := `
 	SELECT * FROM carts
 	WHERE 1=1
@@ -101,7 +101,7 @@ func (c CartStore) List(ctx context.Context, filter domain.CartFilter) ([]domain
 }
 
 // Update updates a cart by id in database.
-func (c CartStore) Update(ctx context.Context, ID int, input domain.CartUpdate) (domain.Cart, error) {
+func (c cartStore) Update(ctx context.Context, ID int, input domain.CartUpdate) (domain.Cart, error) {
 	query := `
 	UPDATE carts
 	SET product_id = COALESCE(@product_id, product_id),
@@ -141,7 +141,7 @@ func (c CartStore) Update(ctx context.Context, ID int, input domain.CartUpdate) 
 }
 
 // Delete deletes a cart by id from database.
-func (c CartStore) Delete(ctx context.Context, ID int) error {
+func (c cartStore) Delete(ctx context.Context, ID int) error {
 	query := `
 	DELETE FROM carts
 	WHERE id = @id

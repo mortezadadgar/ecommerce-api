@@ -9,18 +9,18 @@ import (
 	"github.com/mortezadadgar/ecommerce-api/domain"
 )
 
-// SearchStore represents search in database.
-type SearchStore struct {
+// searchStore represents search in database.
+type searchStore struct {
 	db *pgxpool.Pool
 }
 
 // NewSearchStore returns a new instance of SearchStore.
-func NewSearchStore(db *pgxpool.Pool) SearchStore {
-	return SearchStore{db: db}
+func NewSearchStore(db *pgxpool.Pool) searchStore {
+	return searchStore{db: db}
 }
 
 // Search full searches database.
-func (s SearchStore) Search(ctx context.Context, query string) (results []domain.Search, err error) {
+func (s searchStore) Search(ctx context.Context, query string) (results []domain.Search, err error) {
 	categories, err := fullSearchName[domain.Category](ctx, s.db, "categories", query)
 	if err != nil {
 		log.Fatal(err)

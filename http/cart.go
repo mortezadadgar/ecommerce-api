@@ -9,7 +9,7 @@ import (
 	"github.com/mortezadadgar/ecommerce-api/domain"
 )
 
-func (s *Server) registerCartsRoutes(r *chi.Mux) {
+func (s *server) registerCartsRoutes(r *chi.Mux) {
 	r.Route("/carts", func(r chi.Router) {
 		r.Get("/", s.listCartsHandler)
 		r.Get("/{id}", s.getCartsHandler)
@@ -33,7 +33,7 @@ func (s *Server) registerCartsRoutes(r *chi.Mux) {
 // @Failure      404  {object}  http.WrapError
 // @Failure      500  {object}  http.WrapError
 // @Router       /carts/{id}    [get]
-func (s *Server) getCartsHandler(w http.ResponseWriter, r *http.Request) {
+func (s *server) getCartsHandler(w http.ResponseWriter, r *http.Request) {
 	ID, err := strconv.Atoi(chi.URLParam(r, "id"))
 	if err != nil {
 		ErrorInvalidQuery(w, r)
@@ -66,7 +66,7 @@ func (s *Server) getCartsHandler(w http.ResponseWriter, r *http.Request) {
 // @Failure      404  {object}    http.WrapError
 // @Failure      500  {object}    http.WrapError
 // @Router       /carts/user/{id} [get]
-func (s *Server) getUserCartsHandler(w http.ResponseWriter, r *http.Request) {
+func (s *server) getUserCartsHandler(w http.ResponseWriter, r *http.Request) {
 	UserID, err := strconv.Atoi(chi.URLParam(r, "id"))
 	if err != nil {
 		ErrorInvalidQuery(w, r)
@@ -100,7 +100,7 @@ func (s *Server) getUserCartsHandler(w http.ResponseWriter, r *http.Request) {
 // @Failure      404  {object}  http.WrapError
 // @Failure      500  {object}  http.WrapError
 // @Router       /carts/        [get]
-func (s *Server) listCartsHandler(w http.ResponseWriter, r *http.Request) {
+func (s *server) listCartsHandler(w http.ResponseWriter, r *http.Request) {
 	limit, err := ParseIntQuery(r, "limit")
 	if err != nil {
 		ErrorInvalidQuery(w, r)
@@ -148,7 +148,7 @@ func (s *Server) listCartsHandler(w http.ResponseWriter, r *http.Request) {
 // @Failure      413          {object}    http.WrapError
 // @Failure      500          {object}    http.WrapError
 // @Router       /carts/{id}  [post]
-func (s *Server) postCartsHandler(w http.ResponseWriter, r *http.Request) {
+func (s *server) postCartsHandler(w http.ResponseWriter, r *http.Request) {
 	input := domain.CartCreate{}
 	err := FromJSON(w, r, &input)
 	if err != nil {
@@ -192,7 +192,7 @@ func (s *Server) postCartsHandler(w http.ResponseWriter, r *http.Request) {
 // @Failure      413          {object}    http.WrapError
 // @Failure      500          {object}    http.WrapError
 // @Router       /carts/{id}  [patch]
-func (s *Server) updateCartshandler(w http.ResponseWriter, r *http.Request) {
+func (s *server) updateCartshandler(w http.ResponseWriter, r *http.Request) {
 	ID, err := strconv.Atoi(chi.URLParam(r, "id"))
 	if err != nil {
 		ErrorInvalidQuery(w, r)
@@ -240,7 +240,7 @@ func (s *Server) updateCartshandler(w http.ResponseWriter, r *http.Request) {
 // @Failure      404          {object}    http.WrapError
 // @Failure      500          {object}    http.WrapError
 // @Router       /carts/{id}  [delete]
-func (s *Server) deleteCartshandler(w http.ResponseWriter, r *http.Request) {
+func (s *server) deleteCartshandler(w http.ResponseWriter, r *http.Request) {
 	ID, err := strconv.Atoi(chi.URLParam(r, "id"))
 	if err != nil {
 		ErrorInvalidQuery(w, r)

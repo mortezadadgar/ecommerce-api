@@ -10,18 +10,18 @@ import (
 	"github.com/mortezadadgar/ecommerce-api/domain"
 )
 
-// UserStore represents users database.
-type UserStore struct {
+// userStore represents users database.
+type userStore struct {
 	db *pgxpool.Pool
 }
 
 // NewUserStore returns a new instance of UsersStore.
-func NewUserStore(db *pgxpool.Pool) UserStore {
-	return UserStore{db: db}
+func NewUserStore(db *pgxpool.Pool) userStore {
+	return userStore{db: db}
 }
 
 // Create creates a new user in database.
-func (u UserStore) Create(ctx context.Context, user *domain.User) error {
+func (u userStore) Create(ctx context.Context, user *domain.User) error {
 	query := `
 	INSERT INTO users(email, password_hash)
 	VALUES(@email, @password_hash)
@@ -48,7 +48,7 @@ func (u UserStore) Create(ctx context.Context, user *domain.User) error {
 }
 
 // GetByID get user by id from database.
-func (u UserStore) GetByID(ctx context.Context, ID int) (domain.User, error) {
+func (u userStore) GetByID(ctx context.Context, ID int) (domain.User, error) {
 	user, err := u.List(ctx, domain.UserFilter{ID: ID})
 	if err != nil {
 		return domain.User{}, err
@@ -58,7 +58,7 @@ func (u UserStore) GetByID(ctx context.Context, ID int) (domain.User, error) {
 }
 
 // GetByEmail get user by email from database.
-func (u UserStore) GetByEmail(ctx context.Context, email string) (domain.User, error) {
+func (u userStore) GetByEmail(ctx context.Context, email string) (domain.User, error) {
 	user, err := u.List(ctx, domain.UserFilter{Email: email})
 	if err != nil {
 		return domain.User{}, err
@@ -68,7 +68,7 @@ func (u UserStore) GetByEmail(ctx context.Context, email string) (domain.User, e
 }
 
 // List lists users with optional filter.
-func (u UserStore) List(ctx context.Context, filter domain.UserFilter) ([]domain.User, error) {
+func (u userStore) List(ctx context.Context, filter domain.UserFilter) ([]domain.User, error) {
 	query := `
 	SELECT id, email, password_hash
 	FROM users
@@ -97,7 +97,7 @@ func (u UserStore) List(ctx context.Context, filter domain.UserFilter) ([]domain
 }
 
 // Delete deletes a user by id from database.
-func (u UserStore) Delete(ctx context.Context, ID int) error {
+func (u userStore) Delete(ctx context.Context, ID int) error {
 	query := `
 	DELETE FROM users
 	WHERE id = @id

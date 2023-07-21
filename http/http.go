@@ -30,8 +30,8 @@ import (
 	"github.com/mortezadadgar/ecommerce-api/domain"
 )
 
-// Server represents an HTTP server.
-type Server struct {
+// server represents an HTTP server.
+type server struct {
 	UsersStore      domain.UserService
 	ProductsStore   domain.ProductService
 	CategoriesStore domain.CategoryService
@@ -44,9 +44,9 @@ type Server struct {
 }
 
 // New returns a new instance of Server.
-func New() *Server {
+func New() *server {
 	r := chi.NewMux()
-	s := Server{
+	s := server{
 		Server: &http.Server{
 			Handler: r,
 		},
@@ -72,7 +72,7 @@ func New() *Server {
 }
 
 // Start starts the server.
-func (s *Server) Start() error {
+func (s *server) Start() error {
 	l, err := net.Listen("tcp", os.Getenv("ADDRESS"))
 	if err != nil {
 		return err
@@ -85,7 +85,7 @@ func (s *Server) Start() error {
 }
 
 // Close closes the database connection.
-func (s *Server) Close() error {
+func (s *server) Close() error {
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
 	return s.Shutdown(ctx)
@@ -100,7 +100,7 @@ type store interface {
 	Ping(ctx context.Context) error
 }
 
-func (s *Server) healthHandler(w http.ResponseWriter, r *http.Request) {
+func (s *server) healthHandler(w http.ResponseWriter, r *http.Request) {
 	var dbStatus string
 	if err := s.Store.Ping(r.Context()); err != nil {
 		dbStatus = "Connection Error"
@@ -123,11 +123,11 @@ func (s *Server) healthHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (s *Server) notFoundHandler(w http.ResponseWriter, r *http.Request) {
+func (s *server) notFoundHandler(w http.ResponseWriter, r *http.Request) {
 	Errorf(w, r, http.StatusNotFound, "the requested url not found")
 }
 
-func (s *Server) methodNotAllowdHandler(w http.ResponseWriter, r *http.Request) {
+func (s *server) methodNotAllowdHandler(w http.ResponseWriter, r *http.Request) {
 	Errorf(w, r, http.StatusBadRequest, "the requested method not allowed")
 }
 
@@ -177,7 +177,7 @@ var ErrMalformedAuthHeader = errors.New("malformed authorization header")
 
 // authentication a middleware that utilizes authorization header
 // for token based authentications.
-func (s *Server) authentication(next http.Handler) http.Handler {
+func (s *server) authentication(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		auth := r.Header.Get("Authorization")
 		if len(auth) == 0 {

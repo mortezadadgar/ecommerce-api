@@ -10,18 +10,18 @@ import (
 	"github.com/mortezadadgar/ecommerce-api/domain"
 )
 
-// TokenStore represents tokens database.
-type TokenStore struct {
+// tokenStore represents tokens database.
+type tokenStore struct {
 	db *pgxpool.Pool
 }
 
 // NewTokenStore returns a new instance of TokenStore
-func NewTokenStore(db *pgxpool.Pool) TokenStore {
-	return TokenStore{db: db}
+func NewTokenStore(db *pgxpool.Pool) tokenStore {
+	return tokenStore{db: db}
 }
 
 // Create creates a new token in database.
-func (t TokenStore) Create(ctx context.Context, token domain.Token) error {
+func (t tokenStore) Create(ctx context.Context, token domain.Token) error {
 	query := `
 	INSERT INTO tokens(hashed, user_id, expiry)
 	VALUES(@hashed, @user_id, @expiry)
@@ -45,7 +45,7 @@ func (t TokenStore) Create(ctx context.Context, token domain.Token) error {
 }
 
 // GetUserID get user by token and return ErrNoRows on expired tokens.
-func (t TokenStore) GetUserID(ctx context.Context, plainToken string) (int, error) {
+func (t tokenStore) GetUserID(ctx context.Context, plainToken string) (int, error) {
 	query := `
 	SELECT id FROM users
 	INNER JOIN tokens ON users.id = tokens.user_id

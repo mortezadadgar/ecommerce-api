@@ -8,13 +8,13 @@ import (
 	"github.com/mortezadadgar/ecommerce-api/domain"
 )
 
-func (s *Server) registerSearchRoutes(r *chi.Mux) {
+func (s *server) registerSearchRoutes(r *chi.Mux) {
 	r.Route("/search", func(r chi.Router) {
 		r.Get("/", s.searchHandler)
 	})
 }
 
-func (s *Server) searchHandler(w http.ResponseWriter, r *http.Request) {
+func (s *server) searchHandler(w http.ResponseWriter, r *http.Request) {
 	query := r.URL.Query().Get("q")
 	if len(query) == 0 {
 		Errorf(w, r, http.StatusBadRequest, "search is not supported without query")

@@ -22,12 +22,17 @@ var (
 )
 
 // Postgres represents postgres connection pool.
-type Postgres struct {
+type postgres struct {
 	DB *pgxpool.Pool
 }
 
+// New returns a new instace of postgres.
+func New() postgres {
+	return postgres{}
+}
+
 // Connect connet to postgres driver with giving dsn.
-func (p *Postgres) Connect(dsn string) error {
+func (p *postgres) Connect(dsn string) error {
 	var (
 		once sync.Once
 		err  error
@@ -52,13 +57,13 @@ func (p *Postgres) Connect(dsn string) error {
 }
 
 // Close closes postgres connection.
-func (p *Postgres) Close() error {
+func (p *postgres) Close() error {
 	p.DB.Close()
 	return nil
 }
 
 // Ping test postgres connection.
-func (p *Postgres) Ping(ctx context.Context) error {
+func (p *postgres) Ping(ctx context.Context) error {
 	return p.DB.Ping(ctx)
 }
 

@@ -11,18 +11,18 @@ import (
 	"github.com/mortezadadgar/ecommerce-api/domain"
 )
 
-// CategoryStore represents categories database.
-type CategoryStore struct {
+// categoryStore represents categories database.
+type categoryStore struct {
 	db *pgxpool.Pool
 }
 
 // NewCategoryStore returns a new instance of CategoriesStore.
-func NewCategoryStore(db *pgxpool.Pool) CategoryStore {
-	return CategoryStore{db: db}
+func NewCategoryStore(db *pgxpool.Pool) categoryStore {
+	return categoryStore{db: db}
 }
 
 // Create creates a new category in database.
-func (c CategoryStore) Create(ctx context.Context, category *domain.Category) error {
+func (c categoryStore) Create(ctx context.Context, category *domain.Category) error {
 	query := `
 	 INSERT INTO categories(name, description)
 	 VALUES(@name, @description)
@@ -49,7 +49,7 @@ func (c CategoryStore) Create(ctx context.Context, category *domain.Category) er
 }
 
 // GetByID get category by id from database.
-func (c CategoryStore) GetByID(ctx context.Context, ID int) (domain.Category, error) {
+func (c categoryStore) GetByID(ctx context.Context, ID int) (domain.Category, error) {
 	category, err := c.List(ctx, domain.CategoryFilter{ID: ID})
 	if err != nil {
 		return domain.Category{}, err
@@ -59,7 +59,7 @@ func (c CategoryStore) GetByID(ctx context.Context, ID int) (domain.Category, er
 }
 
 // List lists categories with optional filter.
-func (c CategoryStore) List(ctx context.Context, filter domain.CategoryFilter) ([]domain.Category, error) {
+func (c categoryStore) List(ctx context.Context, filter domain.CategoryFilter) ([]domain.Category, error) {
 	query := `
 	SELECT * FROM categories
 	WHERE 1=1
@@ -87,7 +87,7 @@ func (c CategoryStore) List(ctx context.Context, filter domain.CategoryFilter) (
 }
 
 // Update updates a category by id in
-func (c CategoryStore) Update(ctx context.Context, ID int, input domain.CategoryUpdate) (domain.Category, error) {
+func (c categoryStore) Update(ctx context.Context, ID int, input domain.CategoryUpdate) (domain.Category, error) {
 	query := `
 	UPDATE categories
 	SET name = COALESCE(@name, name),
@@ -130,7 +130,7 @@ func (c CategoryStore) Update(ctx context.Context, ID int, input domain.Category
 }
 
 // Delete deletes a category by id from database.
-func (c CategoryStore) Delete(ctx context.Context, ID int) error {
+func (c categoryStore) Delete(ctx context.Context, ID int) error {
 	query := `
 	DELETE FROM categories
 	WHERE id = @id

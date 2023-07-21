@@ -11,18 +11,18 @@ import (
 	"github.com/mortezadadgar/ecommerce-api/domain"
 )
 
-// ProductStore represents products database.
-type ProductStore struct {
+// productStore represents products database.
+type productStore struct {
 	db *pgxpool.Pool
 }
 
 // NewProductStore returns a new instance of ProductStore.
-func NewProductStore(db *pgxpool.Pool) ProductStore {
-	return ProductStore{db: db}
+func NewProductStore(db *pgxpool.Pool) productStore {
+	return productStore{db: db}
 }
 
 // Create creates a new product in database.
-func (p ProductStore) Create(ctx context.Context, product *domain.Product) error {
+func (p productStore) Create(ctx context.Context, product *domain.Product) error {
 	query := `
 	 INSERT INTO products(name, description, category_id, price, quantity)
 	 VALUES(@name, @description, @category, @price, @quantity)
@@ -57,7 +57,7 @@ func (p ProductStore) Create(ctx context.Context, product *domain.Product) error
 }
 
 // GetByID get product by id from database.
-func (p ProductStore) GetByID(ctx context.Context, ID int) (domain.Product, error) {
+func (p productStore) GetByID(ctx context.Context, ID int) (domain.Product, error) {
 	product, err := p.List(ctx, domain.ProductFilter{ID: ID})
 	if err != nil {
 		return domain.Product{}, err
@@ -67,7 +67,7 @@ func (p ProductStore) GetByID(ctx context.Context, ID int) (domain.Product, erro
 }
 
 // List lists products with optional filter.
-func (p ProductStore) List(ctx context.Context, filter domain.ProductFilter) ([]domain.Product, error) {
+func (p productStore) List(ctx context.Context, filter domain.ProductFilter) ([]domain.Product, error) {
 	query := `
 	SELECT * FROM products
 	WHERE 1=1
@@ -95,7 +95,7 @@ func (p ProductStore) List(ctx context.Context, filter domain.ProductFilter) ([]
 }
 
 // Update updates a product by id in database.
-func (p ProductStore) Update(ctx context.Context, ID int, input domain.ProductUpdate) (domain.Product, error) {
+func (p productStore) Update(ctx context.Context, ID int, input domain.ProductUpdate) (domain.Product, error) {
 	query := `
 	UPDATE products
 	SET name        = COALESCE(@name,name),
@@ -149,7 +149,7 @@ func (p ProductStore) Update(ctx context.Context, ID int, input domain.ProductUp
 }
 
 // Delete deletes a product by id from database.
-func (p ProductStore) Delete(ctx context.Context, ID int) error {
+func (p productStore) Delete(ctx context.Context, ID int) error {
 	query := `
 	DELETE FROM products
 	WHERE id = @id

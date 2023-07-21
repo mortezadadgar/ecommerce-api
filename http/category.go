@@ -10,7 +10,7 @@ import (
 	"github.com/mortezadadgar/ecommerce-api/domain"
 )
 
-func (s *Server) registerCategoriesRoutes(r *chi.Mux) {
+func (s *server) registerCategoriesRoutes(r *chi.Mux) {
 	r.Route("/categories", func(r chi.Router) {
 		r.Get("/{id}", s.getCategoryHandler)
 		r.Get("/", s.listCategoriesHandler)
@@ -29,7 +29,7 @@ func (s *Server) registerCategoriesRoutes(r *chi.Mux) {
 // @Failure      404  {object}    http.WrapError
 // @Failure      500  {object}    http.WrapError
 // @Router       /categories/{id} [get]
-func (s *Server) getCategoryHandler(w http.ResponseWriter, r *http.Request) {
+func (s *server) getCategoryHandler(w http.ResponseWriter, r *http.Request) {
 	ID, err := strconv.Atoi(chi.URLParam(r, "id"))
 	if err != nil {
 		ErrorInvalidQuery(w, r)
@@ -63,7 +63,7 @@ func (s *Server) getCategoryHandler(w http.ResponseWriter, r *http.Request) {
 // @Failure      404  {object}  http.WrapError
 // @Failure      500  {object}  http.WrapError
 // @Router       /categories/   [get]
-func (s *Server) listCategoriesHandler(w http.ResponseWriter, r *http.Request) {
+func (s *server) listCategoriesHandler(w http.ResponseWriter, r *http.Request) {
 	limit, err := ParseIntQuery(r, "limit")
 	if err != nil {
 		ErrorInvalidQuery(w, r)
@@ -112,7 +112,7 @@ func (s *Server) listCategoriesHandler(w http.ResponseWriter, r *http.Request) {
 // @Failure      413              {object}    http.WrapError
 // @Failure      500              {object}    http.WrapError
 // @Router       /categories/{id} [post]
-func (s *Server) createCategoryHandler(w http.ResponseWriter, r *http.Request) {
+func (s *server) createCategoryHandler(w http.ResponseWriter, r *http.Request) {
 	input := domain.CategoryCreate{}
 
 	err := FromJSON(w, r, &input)
@@ -158,7 +158,7 @@ func (s *Server) createCategoryHandler(w http.ResponseWriter, r *http.Request) {
 // @Failure      413              {object}    http.WrapError
 // @Failure      500              {object}    http.WrapError
 // @Router       /categories/{id} [patch]
-func (s *Server) updateCategoryHandler(w http.ResponseWriter, r *http.Request) {
+func (s *server) updateCategoryHandler(w http.ResponseWriter, r *http.Request) {
 	ID, err := strconv.Atoi(chi.URLParam(r, "id"))
 	if err != nil {
 		ErrorInvalidQuery(w, r)
@@ -204,7 +204,7 @@ func (s *Server) updateCategoryHandler(w http.ResponseWriter, r *http.Request) {
 // @Failure      404          {object}    http.WrapError
 // @Failure      500          {object}    http.WrapError
 // @Router       /categories/{id} [delete]
-func (s *Server) deleteCategoryHandler(w http.ResponseWriter, r *http.Request) {
+func (s *server) deleteCategoryHandler(w http.ResponseWriter, r *http.Request) {
 	ID, err := strconv.Atoi(chi.URLParam(r, "id"))
 	if err != nil {
 		ErrorInvalidQuery(w, r)

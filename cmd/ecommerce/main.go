@@ -18,7 +18,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	pg := postgres.Postgres{}
+	pg := postgres.New()
 	err = pg.Connect(os.Getenv("DSN"))
 	if err != nil {
 		log.Fatal(err)
