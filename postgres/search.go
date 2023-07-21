@@ -2,7 +2,6 @@ package postgres
 
 import (
 	"context"
-	"fmt"
 	"log"
 
 	"github.com/jackc/pgx/v5"
@@ -48,12 +47,6 @@ func (s SearchStore) Search(ctx context.Context, query string) (results []domain
 }
 
 func fullSearchName[T any](ctx context.Context, db *pgxpool.Pool, table string, query string) (results []T, err error) {
-	tx, err := db.Begin(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("%v: %v", ErrBeginTransaction, err)
-	}
-	defer tx.Rollback(ctx)
-
 	sqlQuery := `
 	SELECT * FROM ` + table + `
 	WHERE to_tsvector('simple', name) @@ to_tsquery('simple', @query);
@@ -63,7 +56,7 @@ func fullSearchName[T any](ctx context.Context, db *pgxpool.Pool, table string, 
 		"query": query,
 	}
 
-	rows, err := tx.Query(ctx, sqlQuery, args)
+	rows, err := db.Query(ctx, sqlQuery, args)
 	if err != nil {
 		return nil, err
 	}
@@ -71,11 +64,6 @@ func fullSearchName[T any](ctx context.Context, db *pgxpool.Pool, table string, 
 	results, err = pgx.CollectRows(rows, pgx.RowToStructByName[T])
 	if err != nil {
 		return nil, err
-	}
-
-	err = tx.Commit(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("%v: %v", ErrCommitTransaction, err)
 	}
 
 	return results, nil

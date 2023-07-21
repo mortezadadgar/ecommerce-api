@@ -23,12 +23,6 @@ func NewCategoryStore(db *pgxpool.Pool) CategoryStore {
 
 // Create creates a new category in database.
 func (c CategoryStore) Create(ctx context.Context, category *domain.Category) error {
-	tx, err := c.db.Begin(ctx)
-	if err != nil {
-		return fmt.Errorf("%v: %v", ErrBeginTransaction, err)
-	}
-	defer tx.Rollback(ctx)
-
 	query := `
 	 INSERT INTO categories(name, description)
 	 VALUES(@name, @description)
@@ -40,7 +34,7 @@ func (c CategoryStore) Create(ctx context.Context, category *domain.Category) er
 		"description": &category.Description,
 	}
 
-	err = tx.QueryRow(ctx, query, args).Scan(&category.ID, &category.Version)
+	err := c.db.QueryRow(ctx, query, args).Scan(&category.ID, &category.Version)
 	if err != nil {
 		pgErr := pgError(err)
 		if pgErr.Code == pgerrcode.UniqueViolation {
@@ -49,11 +43,6 @@ func (c CategoryStore) Create(ctx context.Context, category *domain.Category) er
 			}
 		}
 		return err
-	}
-
-	err = tx.Commit(ctx)
-	if err != nil {
-		return fmt.Errorf("%v: %v", ErrCommitTransaction, err)
 	}
 
 	return nil
@@ -71,12 +60,6 @@ func (c CategoryStore) GetByID(ctx context.Context, ID int) (domain.Category, er
 
 // List lists categories with optional filter.
 func (c CategoryStore) List(ctx context.Context, filter domain.CategoryFilter) ([]domain.Category, error) {
-	tx, err := c.db.Begin(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("%v: %v", ErrBeginTransaction, err)
-	}
-	defer tx.Rollback(ctx)
-
 	query := `
 	SELECT * FROM categories
 	WHERE 1=1
@@ -86,7 +69,7 @@ func (c CategoryStore) List(ctx context.Context, filter domain.CategoryFilter) (
 	` + FormatLimitOffset(filter.Limit, filter.Offset) + `
 	`
 
-	rows, err := tx.Query(ctx, query)
+	rows, err := c.db.Query(ctx, query)
 	if err != nil {
 		return nil, fmt.Errorf("failed to list categories: %v", err)
 	}
@@ -105,12 +88,6 @@ func (c CategoryStore) List(ctx context.Context, filter domain.CategoryFilter) (
 
 // Update updates a category by id in
 func (c CategoryStore) Update(ctx context.Context, category *domain.Category) error {
-	tx, err := c.db.Begin(ctx)
-	if err != nil {
-		return fmt.Errorf("%v: %v", ErrBeginTransaction, err)
-	}
-	defer tx.Rollback(ctx)
-
 	query := `
 	UPDATE categories
 	SET name = @name, description = @description, updated_at = NOW(), version = version + 1
@@ -125,7 +102,7 @@ func (c CategoryStore) Update(ctx context.Context, category *domain.Category) er
 		"version":     &category.Version,
 	}
 
-	err = tx.QueryRow(ctx, query, args).Scan(&category.Version)
+	err := c.db.QueryRow(ctx, query, args).Scan(&category.Version)
 	if err != nil {
 		pgErr := pgError(err)
 		if pgErr.Code == pgerrcode.UniqueViolation {
@@ -141,22 +118,11 @@ func (c CategoryStore) Update(ctx context.Context, category *domain.Category) er
 		return err
 	}
 
-	err = tx.Commit(ctx)
-	if err != nil {
-		return fmt.Errorf("%v: %v", ErrCommitTransaction, err)
-	}
-
 	return nil
 }
 
 // Delete deletes a category by id from database.
 func (c CategoryStore) Delete(ctx context.Context, ID int) error {
-	tx, err := c.db.Begin(ctx)
-	if err != nil {
-		return fmt.Errorf("%v: %v", ErrBeginTransaction, err)
-	}
-	defer tx.Rollback(ctx)
-
 	query := `
 	DELETE FROM categories
 	WHERE id = @id
@@ -166,18 +132,13 @@ func (c CategoryStore) Delete(ctx context.Context, ID int) error {
 		"id": ID,
 	}
 
-	result, err := tx.Exec(ctx, query, args)
+	result, err := c.db.Exec(ctx, query, args)
 	if err != nil {
 		return err
 	}
 
 	if rows := result.RowsAffected(); rows != 1 {
 		return domain.ErrNoCategoryFound
-	}
-
-	err = tx.Commit(ctx)
-	if err != nil {
-		return fmt.Errorf("%v: %v", ErrCommitTransaction, err)
 	}
 
 	return nil

@@ -22,13 +22,6 @@ func NewCartStore(db *pgxpool.Pool) CartStore {
 
 // Create creates a new cart in database.
 func (c CartStore) Create(ctx context.Context, cart *domain.Cart) error {
-	tx, err := c.db.Begin(ctx)
-	if err != nil {
-		return fmt.Errorf("%v: %v", ErrBeginTransaction, err)
-
-	}
-	defer tx.Rollback(ctx)
-
 	query := `
 	INSERT INTO carts(product_id, quantity, user_id)
 	VALUES(@product_id, @quantity, @user_id)
@@ -41,7 +34,7 @@ func (c CartStore) Create(ctx context.Context, cart *domain.Cart) error {
 		"user_id":    cart.UserID,
 	}
 
-	err = tx.QueryRow(ctx, query, args).Scan(&cart.ID)
+	err := c.db.QueryRow(ctx, query, args).Scan(&cart.ID)
 	if err != nil {
 		pgErr := pgError(err)
 		if pgErr.Code == pgerrcode.ForeignKeyViolation {
@@ -53,11 +46,6 @@ func (c CartStore) Create(ctx context.Context, cart *domain.Cart) error {
 			}
 		}
 		return err
-	}
-
-	err = tx.Commit(ctx)
-	if err != nil {
-		return fmt.Errorf("%v: %v", ErrCommitTransaction, err)
 	}
 
 	return nil
@@ -85,12 +73,6 @@ func (c CartStore) GetByID(ctx context.Context, ID int) (domain.Cart, error) {
 
 // List lists carts with optional filter.
 func (c CartStore) List(ctx context.Context, filter domain.CartFilter) ([]domain.Cart, error) {
-	tx, err := c.db.Begin(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("%v: %v", ErrBeginTransaction, err)
-	}
-	defer tx.Rollback(ctx)
-
 	query := `
 	SELECT * FROM carts
 	WHERE 1=1
@@ -100,7 +82,7 @@ func (c CartStore) List(ctx context.Context, filter domain.CartFilter) ([]domain
 	` + FormatLimitOffset(filter.Limit, filter.Offset) + `
 	`
 
-	rows, err := tx.Query(ctx, query)
+	rows, err := c.db.Query(ctx, query)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query list carts: %v", err)
 	}
@@ -119,12 +101,6 @@ func (c CartStore) List(ctx context.Context, filter domain.CartFilter) ([]domain
 
 // Update updates a cart by id in database.
 func (c CartStore) Update(ctx context.Context, cart *domain.Cart) error {
-	tx, err := c.db.Begin(ctx)
-	if err != nil {
-		return fmt.Errorf("%v: %v", ErrBeginTransaction, err)
-	}
-	defer tx.Rollback(ctx)
-
 	query := `
 	UPDATE carts
 	SET product_id = @product_id, quantity = @quantity
@@ -137,7 +113,7 @@ func (c CartStore) Update(ctx context.Context, cart *domain.Cart) error {
 		"id":         &cart.ID,
 	}
 
-	rows, err := tx.Exec(ctx, query, args)
+	rows, err := c.db.Exec(ctx, query, args)
 	if err != nil {
 		pgErr := pgError(err)
 		if pgErr.Code == pgerrcode.ForeignKeyViolation {
@@ -152,22 +128,11 @@ func (c CartStore) Update(ctx context.Context, cart *domain.Cart) error {
 		return domain.ErrNoCartsFound
 	}
 
-	err = tx.Commit(ctx)
-	if err != nil {
-		return fmt.Errorf("%v: %v", ErrCommitTransaction, err)
-	}
-
 	return nil
 }
 
 // Delete deletes a cart by id from database.
 func (c CartStore) Delete(ctx context.Context, ID int) error {
-	tx, err := c.db.Begin(ctx)
-	if err != nil {
-		return fmt.Errorf("%v: %v", ErrBeginTransaction, err)
-	}
-	defer tx.Rollback(ctx)
-
 	query := `
 	DELETE FROM carts
 	WHERE id = @id
@@ -177,18 +142,13 @@ func (c CartStore) Delete(ctx context.Context, ID int) error {
 		"id": ID,
 	}
 
-	result, err := tx.Exec(ctx, query, args)
+	result, err := c.db.Exec(ctx, query, args)
 	if err != nil {
 		return fmt.Errorf("failed to delete from users: %v", err)
 	}
 
 	if rows := result.RowsAffected(); rows != 1 {
 		return domain.ErrNoCartsFound
-	}
-
-	err = tx.Commit(ctx)
-	if err != nil {
-		return fmt.Errorf("%v: %v", ErrCommitTransaction, err)
 	}
 
 	return nil

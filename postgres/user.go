@@ -22,12 +22,6 @@ func NewUserStore(db *pgxpool.Pool) UserStore {
 
 // Create creates a new user in database.
 func (u UserStore) Create(ctx context.Context, user *domain.User) error {
-	tx, err := u.db.Begin(ctx)
-	if err != nil {
-		return fmt.Errorf("%v: %v", ErrBeginTransaction, err)
-	}
-	defer tx.Rollback(ctx)
-
 	query := `
 	INSERT INTO users(email, password_hash)
 	VALUES(@email, @password_hash)
@@ -39,7 +33,7 @@ func (u UserStore) Create(ctx context.Context, user *domain.User) error {
 		"password_hash": &user.Password,
 	}
 
-	err = tx.QueryRow(ctx, query, args).Scan(&user.ID)
+	err := u.db.QueryRow(ctx, query, args).Scan(&user.ID)
 	if err != nil {
 		pgErr := pgError(err)
 		if pgErr.Code == pgerrcode.UniqueViolation {
@@ -48,11 +42,6 @@ func (u UserStore) Create(ctx context.Context, user *domain.User) error {
 			}
 		}
 		return err
-	}
-
-	err = tx.Commit(ctx)
-	if err != nil {
-		return fmt.Errorf("%v: %v", ErrCommitTransaction, err)
 	}
 
 	return nil
@@ -80,12 +69,6 @@ func (u UserStore) GetByEmail(ctx context.Context, email string) (domain.User, e
 
 // List lists users with optional filter.
 func (u UserStore) List(ctx context.Context, filter domain.UserFilter) ([]domain.User, error) {
-	tx, err := u.db.Begin(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("%v: %v", ErrBeginTransaction, err)
-	}
-	defer tx.Rollback(ctx)
-
 	query := `
 	SELECT id, email, password_hash FROM users
 	WHERE 1=1
@@ -95,7 +78,7 @@ func (u UserStore) List(ctx context.Context, filter domain.UserFilter) ([]domain
 	` + FormatLimitOffset(filter.Limit, filter.Offset) + `
 	`
 
-	rows, err := tx.Query(ctx, query)
+	rows, err := u.db.Query(ctx, query)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query list users: %v", err)
 	}
@@ -114,12 +97,6 @@ func (u UserStore) List(ctx context.Context, filter domain.UserFilter) ([]domain
 
 // Delete deletes a user by id from database.
 func (u UserStore) Delete(ctx context.Context, ID int) error {
-	tx, err := u.db.Begin(ctx)
-	if err != nil {
-		return fmt.Errorf("%v: %v", ErrBeginTransaction, err)
-	}
-	defer tx.Rollback(ctx)
-
 	query := `
 	DELETE FROM users
 	WHERE id = @id
@@ -129,18 +106,13 @@ func (u UserStore) Delete(ctx context.Context, ID int) error {
 		"id": ID,
 	}
 
-	result, err := tx.Exec(ctx, query, args)
+	result, err := u.db.Exec(ctx, query, args)
 	if err != nil {
 		return fmt.Errorf("failed to delete from users: %v", err)
 	}
 
 	if rows := result.RowsAffected(); rows != 1 {
 		return domain.ErrNoUsersFound
-	}
-
-	err = tx.Commit(ctx)
-	if err != nil {
-		return fmt.Errorf("%v: %v", ErrCommitTransaction, err)
 	}
 
 	return nil

@@ -23,12 +23,6 @@ func NewProductStore(db *pgxpool.Pool) ProductStore {
 
 // Create creates a new product in database.
 func (p ProductStore) Create(ctx context.Context, product *domain.Product) error {
-	tx, err := p.db.Begin(ctx)
-	if err != nil {
-		return fmt.Errorf("%v: %v", ErrBeginTransaction, err)
-	}
-	defer tx.Rollback(ctx)
-
 	query := `
 	 INSERT INTO products(name, description, category_id, price, quantity)
 	 VALUES(@name, @description, @category, @price, @quantity)
@@ -43,7 +37,7 @@ func (p ProductStore) Create(ctx context.Context, product *domain.Product) error
 		"quantity":    &product.Quantity,
 	}
 
-	err = tx.QueryRow(ctx, query, args).Scan(&product.ID, &product.Version)
+	err := p.db.QueryRow(ctx, query, args).Scan(&product.ID, &product.Version)
 	if err != nil {
 		pgErr := pgError(err)
 		switch pgErr.Code {
@@ -57,11 +51,6 @@ func (p ProductStore) Create(ctx context.Context, product *domain.Product) error
 			}
 		}
 		return err
-	}
-
-	err = tx.Commit(ctx)
-	if err != nil {
-		return fmt.Errorf("%v: %v", ErrCommitTransaction, err)
 	}
 
 	return nil
@@ -79,12 +68,6 @@ func (p ProductStore) GetByID(ctx context.Context, ID int) (domain.Product, erro
 
 // List lists products with optional filter.
 func (p ProductStore) List(ctx context.Context, filter domain.ProductFilter) ([]domain.Product, error) {
-	tx, err := p.db.Begin(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("%v: %v", ErrBeginTransaction, err)
-	}
-	defer tx.Rollback(ctx)
-
 	query := `
 	SELECT * FROM products
 	WHERE 1=1
@@ -94,7 +77,7 @@ func (p ProductStore) List(ctx context.Context, filter domain.ProductFilter) ([]
 	` + FormatLimitOffset(filter.Limit, filter.Offset) + `
 	`
 
-	rows, err := tx.Query(ctx, query)
+	rows, err := p.db.Query(ctx, query)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query list products: %v", err)
 	}
@@ -108,22 +91,11 @@ func (p ProductStore) List(ctx context.Context, filter domain.ProductFilter) ([]
 		return nil, domain.ErrNoProductsFound
 	}
 
-	err = tx.Commit(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("%v: %v", ErrCommitTransaction, err)
-	}
-
 	return products, nil
 }
 
 // Update updates a product by id in
 func (p ProductStore) Update(ctx context.Context, product *domain.Product) error {
-	tx, err := p.db.Begin(ctx)
-	if err != nil {
-		return fmt.Errorf("%v: %v", ErrBeginTransaction, err)
-	}
-	defer tx.Rollback(ctx)
-
 	query := `
 	UPDATE products
 	SET name = @name, description = @description, category_id = @category, price = @price, quantity = @quantity, updated_at = NOW(), version = version + 1
@@ -141,7 +113,7 @@ func (p ProductStore) Update(ctx context.Context, product *domain.Product) error
 		"version":     &product.Version,
 	}
 
-	err = tx.QueryRow(ctx, query, args).Scan(&product.Version)
+	err := p.db.QueryRow(ctx, query, args).Scan(&product.Version)
 	if err != nil {
 		pgErr := pgError(err)
 		switch pgErr.Code {
@@ -162,22 +134,11 @@ func (p ProductStore) Update(ctx context.Context, product *domain.Product) error
 		return err
 	}
 
-	err = tx.Commit(ctx)
-	if err != nil {
-		return fmt.Errorf("%v: %v", ErrCommitTransaction, err)
-	}
-
 	return nil
 }
 
 // Delete deletes a product by id from database.
 func (p ProductStore) Delete(ctx context.Context, ID int) error {
-	tx, err := p.db.Begin(ctx)
-	if err != nil {
-		return fmt.Errorf("%v: %v", ErrBeginTransaction, err)
-	}
-	defer tx.Rollback(ctx)
-
 	query := `
 	DELETE FROM products
 	WHERE id = @id
@@ -187,18 +148,13 @@ func (p ProductStore) Delete(ctx context.Context, ID int) error {
 		"id": ID,
 	}
 
-	result, err := tx.Exec(ctx, query, args)
+	result, err := p.db.Exec(ctx, query, args)
 	if err != nil {
 		return fmt.Errorf("failed to delete from products: %v", err)
 	}
 
 	if rows := result.RowsAffected(); rows != 1 {
 		return domain.ErrNoProductsFound
-	}
-
-	err = tx.Commit(ctx)
-	if err != nil {
-		return fmt.Errorf("%v: %v", ErrCommitTransaction, err)
 	}
 
 	return nil
