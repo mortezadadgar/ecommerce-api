@@ -212,22 +212,12 @@ func (s *Server) updateCartshandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	cart, err := s.CartsStore.GetByID(r.Context(), ID)
-	if err != nil {
-		if errors.Is(err, domain.ErrNoCartsFound) {
-			Errorf(w, r, http.StatusNotFound, err.Error())
-		} else {
-			Errorf(w, r, http.StatusInternalServerError, err.Error())
-		}
-		return
-	}
-
-	input.UpdateModel(&cart)
-
-	err = s.CartsStore.Update(r.Context(), &cart)
+	cart, err := s.CartsStore.Update(r.Context(), ID, input)
 	if err != nil {
 		if errors.Is(err, domain.ErrCartInvalidProductID) {
 			Errorf(w, r, http.StatusBadRequest, err.Error())
+		} else if errors.Is(err, domain.ErrNoCartsFound) {
+			Errorf(w, r, http.StatusNotFound, err.Error())
 		} else {
 			Errorf(w, r, http.StatusInternalServerError, err.Error())
 		}

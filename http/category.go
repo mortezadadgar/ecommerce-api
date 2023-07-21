@@ -178,19 +178,7 @@ func (s *Server) updateCategoryHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	category, err := s.CategoriesStore.GetByID(r.Context(), ID)
-	if err != nil {
-		if errors.Is(err, domain.ErrNoCategoryFound) {
-			Errorf(w, r, http.StatusNotFound, err.Error())
-		} else {
-			Errorf(w, r, http.StatusInternalServerError, err.Error())
-		}
-		return
-	}
-
-	input.UpdateModel(&category)
-
-	err = s.CategoriesStore.Update(r.Context(), &category)
+	category, err := s.CategoriesStore.Update(r.Context(), ID, input)
 	if err != nil {
 		if errors.Is(err, domain.ErrDuplicatedCategory) {
 			Errorf(w, r, http.StatusBadRequest, err.Error())

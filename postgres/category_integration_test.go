@@ -85,13 +85,16 @@ func TestCategoryService_Update(t *testing.T) {
 		t.Fatalf("Create: %v", err)
 	}
 
-	want.Name = "duplicated_name"
-	err = postgres.NewCategoryStore(db).Update(ctx, &want)
+	duplicatedName := "duplicated_name"
+	got, err := postgres.NewCategoryStore(db).Update(ctx, 1, domain.CategoryUpdate{
+		Name:    &duplicatedName,
+		Version: 1,
+	})
 	if err != nil {
 		t.Fatalf("Update: %v", err)
 	}
 
-	got, err := postgres.NewCategoryStore(db).GetByID(ctx, 1)
+	want, err = postgres.NewCategoryStore(db).GetByID(ctx, 1)
 	if err != nil {
 		t.Fatalf("GetByID: %v", err)
 	}
@@ -100,20 +103,25 @@ func TestCategoryService_Update(t *testing.T) {
 		t.Errorf("expected name of %s, got %s", want.Name, got.Name)
 	}
 
-	category := domain.Category{Name: "temporary_name"}
-	err = postgres.NewCategoryStore(db).Create(ctx, &category)
+	err = postgres.NewCategoryStore(db).Create(ctx, &domain.Category{
+		Name: "temporary_name",
+	})
 	if err != nil {
 		t.Fatalf("Create: %v", err)
 	}
 
-	category.Name = "duplicated_name"
-	err = postgres.NewCategoryStore(db).Update(ctx, &category)
+	_, err = postgres.NewCategoryStore(db).Update(ctx, 2, domain.CategoryUpdate{
+		Name:    &duplicatedName,
+		Version: 1,
+	})
 	if err != domain.ErrDuplicatedCategory {
 		t.Errorf("expected %q from Update, got %q", domain.ErrDuplicatedCategory, err)
 	}
 
-	category.Version = 99
-	err = postgres.NewCategoryStore(db).Update(ctx, &category)
+	invalidVersion := 10
+	_, err = postgres.NewCategoryStore(db).Update(ctx, 1, domain.CategoryUpdate{
+		Version: invalidVersion,
+	})
 	if err != domain.ErrCategoryConflict {
 		t.Errorf("expected %q from Update, got %q", domain.ErrCategoryConflict, err)
 	}

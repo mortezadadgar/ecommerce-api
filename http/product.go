@@ -183,23 +183,13 @@ func (s *Server) updateProductHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	product, err := s.ProductsStore.GetByID(r.Context(), ID)
-	if err != nil {
-		if errors.Is(err, domain.ErrNoProductsFound) {
-			Errorf(w, r, http.StatusNotFound, err.Error())
-		} else {
-			Errorf(w, r, http.StatusInternalServerError, err.Error())
-		}
-		return
-	}
-
-	input.UpdateModel(&product)
-
-	err = s.ProductsStore.Update(r.Context(), &product)
+	product, err := s.ProductsStore.Update(r.Context(), ID, input)
 	if err != nil {
 		if errors.Is(err, domain.ErrInvalidProductCategory) ||
 			errors.Is(err, domain.ErrDuplicatedProduct) {
 			Errorf(w, r, http.StatusBadRequest, err.Error())
+		} else if errors.Is(err, domain.ErrNoProductsFound) {
+			Errorf(w, r, http.StatusNotFound, err.Error())
 		} else {
 			Errorf(w, r, http.StatusInternalServerError, err.Error())
 		}

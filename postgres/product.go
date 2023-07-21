@@ -94,47 +94,58 @@ func (p ProductStore) List(ctx context.Context, filter domain.ProductFilter) ([]
 	return products, nil
 }
 
-// Update updates a product by id in
-func (p ProductStore) Update(ctx context.Context, product *domain.Product) error {
+// Update updates a product by id in database.
+func (p ProductStore) Update(ctx context.Context, ID int, input domain.ProductUpdate) (domain.Product, error) {
 	query := `
-	UPDATE products
-	SET name = @name, description = @description, category_id = @category, price = @price, quantity = @quantity, updated_at = NOW(), version = version + 1
+	UPDATE products SET
+	name        = COALESCE(@name,name),
+	description = COALESCE(@description, description),
+	category_id = COALESCE(@category, category_id),
+	price       = COALESCE(@price, price),
+	quantity    = COALESCE(@quantity, quantity),
+	updated_at  = NOW(),
+	version     = version + 1
 	WHERE id = @id AND version = @version
-	RETURNING version
+	RETURNING *
 	`
 
 	args := pgx.NamedArgs{
-		"name":        &product.Name,
-		"description": &product.Description,
-		"category":    &product.CategoryID,
-		"price":       &product.Price,
-		"quantity":    &product.Quantity,
-		"id":          &product.ID,
-		"version":     &product.Version,
+		"name":        &input.Name,
+		"description": &input.Description,
+		"category":    &input.CategoryID,
+		"price":       &input.Price,
+		"quantity":    &input.Quantity,
+		"version":     &input.Version,
+		"id":          &ID,
 	}
 
-	err := p.db.QueryRow(ctx, query, args).Scan(&product.Version)
+	row, err := p.db.Query(ctx, query, args)
+	if err != nil {
+		return domain.Product{}, fmt.Errorf("failed to query update product: %v", err)
+	}
+
+	product, err := pgx.CollectOneRow(row, pgx.RowToStructByName[domain.Product])
 	if err != nil {
 		pgErr := pgError(err)
 		switch pgErr.Code {
 		case pgerrcode.ForeignKeyViolation:
 			if pgErr.ConstraintName == "products_category_id_fkey" {
-				return domain.ErrInvalidProductCategory
+				return domain.Product{}, domain.ErrInvalidProductCategory
 			}
 		case pgerrcode.UniqueViolation:
 			if pgErr.ConstraintName == "products_name_key" {
-				return domain.ErrDuplicatedProduct
+				return domain.Product{}, domain.ErrDuplicatedProduct
 			}
 		}
 
 		if errors.Is(err, pgx.ErrNoRows) {
-			return domain.ErrProductConflict
+			return domain.Product{}, domain.ErrProductConflict
 		}
 
-		return err
+		return domain.Product{}, fmt.Errorf("failed to scan rows of product: %v", err)
 	}
 
-	return nil
+	return product, nil
 }
 
 // Delete deletes a product by id from database.

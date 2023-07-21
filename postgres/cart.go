@@ -2,6 +2,7 @@ package postgres
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/jackc/pgerrcode"
@@ -100,35 +101,43 @@ func (c CartStore) List(ctx context.Context, filter domain.CartFilter) ([]domain
 }
 
 // Update updates a cart by id in database.
-func (c CartStore) Update(ctx context.Context, cart *domain.Cart) error {
+func (c CartStore) Update(ctx context.Context, ID int, input domain.CartUpdate) (domain.Cart, error) {
 	query := `
-	UPDATE carts
-	SET product_id = @product_id, quantity = @quantity
+	UPDATE carts SET
+	product_id = COALESCE(@product_id, product_id),
+	quantity   = COALESCE(@quantity, quantity)
 	WHERE id = @id
+	RETURNING *
 	`
 
 	args := pgx.NamedArgs{
-		"product_id": &cart.ProductID,
-		"quantity":   &cart.Quantity,
-		"id":         &cart.ID,
+		"product_id": &input.ProductID,
+		"quantity":   &input.Quantity,
+		"id":         &ID,
 	}
 
-	rows, err := c.db.Exec(ctx, query, args)
+	row, err := c.db.Query(ctx, query, args)
+	if err != nil {
+		return domain.Cart{}, err
+	}
+
+	cart, err := pgx.CollectOneRow(row, pgx.RowToStructByName[domain.Cart])
 	if err != nil {
 		pgErr := pgError(err)
 		if pgErr.Code == pgerrcode.ForeignKeyViolation {
 			if pgErr.ConstraintName == "carts_product_id_fkey" {
-				return domain.ErrCartInvalidProductID
+				return domain.Cart{}, domain.ErrCartInvalidProductID
 			}
 		}
-		return err
+
+		if errors.Is(err, pgx.ErrNoRows) {
+			return domain.Cart{}, domain.ErrNoCartsFound
+		}
+
+		return domain.Cart{}, fmt.Errorf("failed to scan rows of cart: %v", err)
 	}
 
-	if rows.RowsAffected() == 0 {
-		return domain.ErrNoCartsFound
-	}
-
-	return nil
+	return cart, nil
 }
 
 // Delete deletes a cart by id from database.

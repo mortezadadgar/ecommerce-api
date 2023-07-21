@@ -61,7 +61,7 @@ type CartService interface {
 	GetByID(ctx context.Context, ID int) (Cart, error)
 	List(ctx context.Context, filter CartFilter) ([]Cart, error)
 	Create(ctx context.Context, cart *Cart) error
-	Update(ctx context.Context, cart *Cart) error
+	Update(ctx context.Context, ID int, cart CartUpdate) (Cart, error)
 	Delete(ctx context.Context, userID int) error
 }
 

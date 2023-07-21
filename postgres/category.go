@@ -87,38 +87,46 @@ func (c CategoryStore) List(ctx context.Context, filter domain.CategoryFilter) (
 }
 
 // Update updates a category by id in
-func (c CategoryStore) Update(ctx context.Context, category *domain.Category) error {
+func (c CategoryStore) Update(ctx context.Context, ID int, input domain.CategoryUpdate) (domain.Category, error) {
 	query := `
-	UPDATE categories
-	SET name = @name, description = @description, updated_at = NOW(), version = version + 1
+	UPDATE categories SET
+	name = COALESCE(@name, name),
+	description = COALESCE(@description, description),
+	updated_at = NOW(),
+	version = version + 1
 	WHERE id = @id AND version = @version
-	RETURNING version
+	RETURNING *
 	`
 
 	args := pgx.NamedArgs{
-		"name":        &category.Name,
-		"description": &category.Description,
-		"id":          &category.ID,
-		"version":     &category.Version,
+		"name":        &input.Name,
+		"description": &input.Description,
+		"version":     &input.Version,
+		"id":          ID,
 	}
 
-	err := c.db.QueryRow(ctx, query, args).Scan(&category.Version)
+	row, err := c.db.Query(ctx, query, args)
+	if err != nil {
+		return domain.Category{}, err
+	}
+
+	category, err := pgx.CollectOneRow(row, pgx.RowToStructByName[domain.Category])
 	if err != nil {
 		pgErr := pgError(err)
 		if pgErr.Code == pgerrcode.UniqueViolation {
 			if pgErr.ConstraintName == "categories_name_key" {
-				return domain.ErrDuplicatedCategory
+				return domain.Category{}, domain.ErrDuplicatedCategory
 			}
 		}
 
 		if errors.Is(err, pgx.ErrNoRows) {
-			return domain.ErrCategoryConflict
+			return domain.Category{}, domain.ErrCategoryConflict
 		}
 
-		return err
+		return domain.Category{}, fmt.Errorf("failed to scan row of category: %v", err)
 	}
 
-	return nil
+	return category, nil
 }
 
 // Delete deletes a category by id from database.

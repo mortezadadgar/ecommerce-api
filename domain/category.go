@@ -65,7 +65,7 @@ type CategoryFilter struct {
 type CategoryService interface {
 	Create(ctx context.Context, category *Category) error
 	GetByID(ctx context.Context, ID int) (Category, error)
-	Update(ctx context.Context, category *Category) error
+	Update(ctx context.Context, ID int, category CategoryUpdate) (Category, error)
 	Delete(ctx context.Context, ID int) error
 	List(ctx context.Context, filter CategoryFilter) ([]Category, error)
 }

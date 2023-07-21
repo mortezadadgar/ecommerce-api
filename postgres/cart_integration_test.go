@@ -119,27 +119,33 @@ func TestCartService_Update(t *testing.T) {
 		t.Fatalf("Create: %v", err)
 	}
 
-	want.Quantity = 10
-	err = postgres.NewCartStore(db).Update(ctx, &want)
+	newQuantity := 10
+	got, err := postgres.NewCartStore(db).Update(ctx, 1, domain.CartUpdate{
+		Quantity: &newQuantity,
+	})
 	if err != nil {
 		t.Errorf("Update: %v", err)
 	}
 
-	got, err := postgres.NewCartStore(db).GetByID(ctx, 1)
+	want, err = postgres.NewCartStore(db).GetByID(ctx, 1)
 	if err != nil {
 		t.Fatalf("GetByID: %v", err)
 	}
 
 	if got.Quantity != want.Quantity {
-		t.Errorf("expected quantity of %d, want: %d", got.Quantity, want.Quantity)
+		t.Errorf("expected quantity of %d, got: %d", want.Quantity, got.Quantity)
 	}
 
-	err = postgres.NewCartStore(db).Update(ctx, &domain.Cart{ID: 1, ProductID: 99})
+	invalidProductID := 10
+	_, err = postgres.NewCartStore(db).Update(ctx, 1, domain.CartUpdate{
+		ProductID: &invalidProductID,
+	})
 	if err != domain.ErrCartInvalidProductID {
 		t.Errorf("expected %q from Update, got %q", domain.ErrCartInvalidProductID, err)
 	}
 
-	err = postgres.NewCartStore(db).Update(ctx, &domain.Cart{ID: 99, ProductID: 1})
+	invalidID := 10
+	_, err = postgres.NewCartStore(db).Update(ctx, invalidID, domain.CartUpdate{})
 	if err != domain.ErrNoCartsFound {
 		t.Errorf("expected %q from Update, got %q", domain.ErrNoCartsFound, err)
 	}

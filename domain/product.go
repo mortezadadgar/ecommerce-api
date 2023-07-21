@@ -76,7 +76,7 @@ type ProductFilter struct {
 type ProductService interface {
 	Create(ctx context.Context, product *Product) error
 	GetByID(ctx context.Context, ID int) (Product, error)
-	Update(ctx context.Context, product *Product) error
+	Update(ctx context.Context, ID int, product ProductUpdate) (Product, error)
 	Delete(ctx context.Context, ID int) error
 	List(ctx context.Context, filter ProductFilter) ([]Product, error)
 }
