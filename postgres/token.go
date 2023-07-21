@@ -49,8 +49,7 @@ func (t TokenStore) GetUserID(ctx context.Context, plainToken string) (int, erro
 	query := `
 	SELECT id FROM users
 	INNER JOIN tokens ON users.id = tokens.user_id
-	WHERE tokens.hashed = @hashed
-	AND tokens.expiry > NOW()
+	WHERE tokens.hashed = @hashed AND tokens.expiry > NOW()
 	`
 
 	hashedToken := domain.HashToken(plainToken)

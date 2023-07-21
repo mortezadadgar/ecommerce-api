@@ -89,11 +89,11 @@ func (c CategoryStore) List(ctx context.Context, filter domain.CategoryFilter) (
 // Update updates a category by id in
 func (c CategoryStore) Update(ctx context.Context, ID int, input domain.CategoryUpdate) (domain.Category, error) {
 	query := `
-	UPDATE categories SET
-	name = COALESCE(@name, name),
-	description = COALESCE(@description, description),
-	updated_at = NOW(),
-	version = version + 1
+	UPDATE categories
+	SET name = COALESCE(@name, name),
+		description = COALESCE(@description, description),
+		updated_at = NOW(),
+		version = version + 1
 	WHERE id = @id AND version = @version
 	RETURNING *
 	`

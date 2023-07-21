@@ -97,14 +97,14 @@ func (p ProductStore) List(ctx context.Context, filter domain.ProductFilter) ([]
 // Update updates a product by id in database.
 func (p ProductStore) Update(ctx context.Context, ID int, input domain.ProductUpdate) (domain.Product, error) {
 	query := `
-	UPDATE products SET
-	name        = COALESCE(@name,name),
-	description = COALESCE(@description, description),
-	category_id = COALESCE(@category, category_id),
-	price       = COALESCE(@price, price),
-	quantity    = COALESCE(@quantity, quantity),
-	updated_at  = NOW(),
-	version     = version + 1
+	UPDATE products
+	SET name        = COALESCE(@name,name),
+		description = COALESCE(@description, description),
+		category_id = COALESCE(@category, category_id),
+		price       = COALESCE(@price, price),
+		quantity    = COALESCE(@quantity, quantity),
+		updated_at  = NOW(),
+		version     = version + 1
 	WHERE id = @id AND version = @version
 	RETURNING *
 	`

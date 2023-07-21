@@ -103,9 +103,9 @@ func (c CartStore) List(ctx context.Context, filter domain.CartFilter) ([]domain
 // Update updates a cart by id in database.
 func (c CartStore) Update(ctx context.Context, ID int, input domain.CartUpdate) (domain.Cart, error) {
 	query := `
-	UPDATE carts SET
-	product_id = COALESCE(@product_id, product_id),
-	quantity   = COALESCE(@quantity, quantity)
+	UPDATE carts
+	SET product_id = COALESCE(@product_id, product_id),
+		quantity   = COALESCE(@quantity, quantity)
 	WHERE id = @id
 	RETURNING *
 	`

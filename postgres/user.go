@@ -70,7 +70,8 @@ func (u UserStore) GetByEmail(ctx context.Context, email string) (domain.User, e
 // List lists users with optional filter.
 func (u UserStore) List(ctx context.Context, filter domain.UserFilter) ([]domain.User, error) {
 	query := `
-	SELECT id, email, password_hash FROM users
+	SELECT id, email, password_hash
+	FROM users
 	WHERE 1=1
 	` + FormatAnd("email", filter.Email) + `
 	` + FormatAndInt("id", filter.ID) + `
