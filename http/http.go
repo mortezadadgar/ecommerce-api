@@ -29,6 +29,10 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/mortezadadgar/ecommerce-api/domain"
 	"github.com/mortezadadgar/ecommerce-api/postgres"
+
+	// http-swagger
+	_ "github.com/swaggo/http-swagger/example/go-chi/docs"
+	httpSwagger "github.com/swaggo/http-swagger/v2"
 )
 
 // server represents an HTTP server.
@@ -72,6 +76,7 @@ func New(pg postgres.Postgres) *server {
 	s.registerCategoriesRoutes(r)
 	s.registerCartsRoutes(r)
 	s.registerSearchRoutes(r)
+	registerSwaggerUI(r)
 
 	r.Get("/healthcheck", s.healthHandler)
 	r.NotFound(s.notFoundHandler)
@@ -109,12 +114,17 @@ type store interface {
 	Ping(ctx context.Context) error
 }
 
+// @Summary      Determine if the app is healthy
+// @Tags 		 health
+// @Produce      json
+// @Success      200  {array}   healthResponse
+// @Failure      500  {object}  http.WrapError
+// @Router       /healthcheck   [get]
 func (s *server) healthHandler(w http.ResponseWriter, r *http.Request) {
-	var dbStatus string
-	if err := s.Store.Ping(r.Context()); err != nil {
+	dbStatus := "Connection OK"
+	err := s.Store.Ping(r.Context())
+	if err != nil {
 		dbStatus = "Connection Error"
-	} else {
-		dbStatus = "Connection OK"
 	}
 
 	var m runtime.MemStats
@@ -126,7 +136,7 @@ func (s *server) healthHandler(w http.ResponseWriter, r *http.Request) {
 		MemUsage: memUsage,
 	}
 
-	err := ToJSON(w, h, http.StatusOK)
+	err = ToJSON(w, h, http.StatusOK)
 	if err != nil {
 		Errorf(w, r, http.StatusInternalServerError, err.Error())
 	}
@@ -228,4 +238,18 @@ func requireAuth(next http.Handler) http.Handler {
 		next.ServeHTTP(w, r)
 	})
 
+}
+
+func registerSwaggerUI(r *chi.Mux) {
+	fs := http.FileServer(http.Dir("./swagger"))
+	r.With(requireAuth).Handle("/swagger/swagger.json", http.StripPrefix("/swagger", fs))
+
+	r.With(requireAuth).Get("/docs/*", httpSwagger.Handler(
+		httpSwagger.URL("/swagger/swagger.json"),
+		httpSwagger.UIConfig(map[string]string{
+			"defaultModelsExpandDepth": "-1",
+		}),
+	))
+
+	r.Handle("/docs", http.RedirectHandler("/docs/index.html", http.StatusMovedPermanently))
 }

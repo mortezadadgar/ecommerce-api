@@ -1,5 +1,5 @@
 swagger:
-	@swag init --quiet --output swagger --generalInfo http/server.go
+	@swag init --quiet --output swagger --generalInfo http/http.go
 run: swagger
 	@go run -race ./cmd/ecommerce/
 build: swagger

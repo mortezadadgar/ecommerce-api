@@ -10,6 +10,7 @@ api developments as well.
 - [X] Automatic database migrations on deployment.
 - [X] PostgresSQL database provider.
 - [X] integration tests using dockertest.
+- [X] swagger UI.
 - [X] Dockerized.
 
 
