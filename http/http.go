@@ -28,6 +28,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/mortezadadgar/ecommerce-api/domain"
+	"github.com/mortezadadgar/ecommerce-api/postgres"
 )
 
 // server represents an HTTP server.
@@ -44,13 +45,21 @@ type server struct {
 }
 
 // New returns a new instance of Server.
-func New() *server {
+func New(pg postgres.Postgres) *server {
 	r := chi.NewMux()
 	s := server{
 		Server: &http.Server{
 			Handler: r,
 		},
 	}
+
+	s.UsersStore = postgres.NewUserStore(pg.DB)
+	s.ProductsStore = postgres.NewProductStore(pg.DB)
+	s.CategoriesStore = postgres.NewCategoryStore(pg.DB)
+	s.TokensStore = postgres.NewTokenStore(pg.DB)
+	s.CartsStore = postgres.NewCartStore(pg.DB)
+	s.SearchStore = postgres.NewSearchStore(pg.DB)
+	s.Store = &pg
 
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)

@@ -78,15 +78,16 @@ func TestMain(m *testing.M) {
 	}
 
 	pool.MaxWait = 10 * time.Second
-	var pg postgres.Postgres
 	if err = pool.Retry(func() error {
-		pg = postgres.Postgres{}
-		return pg.Connect(dsn)
+		pg, err := postgres.New(dsn)
+		if err != nil {
+			return err
+		}
+		testDB = pg.DB
+		return nil
 	}); err != nil {
 		log.Fatalf("Could not connect to docker: %s", err)
 	}
-
-	testDB = pg.DB
 
 	code := m.Run()
 
@@ -131,8 +132,7 @@ func newTestDB(t *testing.T, dbName string) *pgxpool.Pool {
 
 	dsn := formatDSN(dbName)
 
-	pg := postgres.Postgres{}
-	err = pg.Connect(dsn)
+	pg, err := postgres.New(dsn)
 	if err != nil {
 		t.Fatal(err)
 	}

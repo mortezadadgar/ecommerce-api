@@ -21,18 +21,22 @@ var (
 	ErrCommitTransaction = errors.New("failed to commit transaction")
 )
 
-// Postgres represents postgres connection pool.
-type postgres struct {
+// Postgres represents Postgres connection pool.
+type Postgres struct {
 	DB *pgxpool.Pool
 }
 
 // New returns a new instace of postgres.
-func New() postgres {
-	return postgres{}
+func New(dsn string) (Postgres, error) {
+	db, err := Connect(dsn)
+	if err != nil {
+		return Postgres{}, err
+	}
+	return Postgres{DB: db}, nil
 }
 
 // Connect connet to postgres driver with giving dsn.
-func (p *postgres) Connect(dsn string) error {
+func Connect(dsn string) (*pgxpool.Pool, error) {
 	var (
 		once sync.Once
 		err  error
@@ -44,26 +48,24 @@ func (p *postgres) Connect(dsn string) error {
 		defer cancel()
 
 		db, err = pgxpool.New(ctx, dsn)
-		p.DB = db
-
 		err = db.Ping(ctx)
 	})
 
-	if err != nil {
-		return err
+	if err != nil || db == nil {
+		return nil, err
 	}
 
-	return nil
+	return db, nil
 }
 
 // Close closes postgres connection.
-func (p *postgres) Close() error {
+func (p *Postgres) Close() error {
 	p.DB.Close()
 	return nil
 }
 
 // Ping test postgres connection.
-func (p *postgres) Ping(ctx context.Context) error {
+func (p *Postgres) Ping(ctx context.Context) error {
 	return p.DB.Ping(ctx)
 }
 

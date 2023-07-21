@@ -18,21 +18,12 @@ func main() {
 		log.Fatal(err)
 	}
 
-	pg := postgres.New()
-	err = pg.Connect(os.Getenv("DSN"))
+	pg, err := postgres.New(os.Getenv("DSN"))
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	server := http.New()
-
-	server.UsersStore = postgres.NewUserStore(pg.DB)
-	server.ProductsStore = postgres.NewProductStore(pg.DB)
-	server.CategoriesStore = postgres.NewCategoryStore(pg.DB)
-	server.TokensStore = postgres.NewTokenStore(pg.DB)
-	server.CartsStore = postgres.NewCartStore(pg.DB)
-	server.SearchStore = postgres.NewSearchStore(pg.DB)
-	server.Store = &pg
+	server := http.New(pg)
 
 	err = server.Start()
 	if err != nil {
